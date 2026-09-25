@@ -913,4 +913,95 @@
             <label for="add-bebida"><i class="fas fa-cocktail"></i> Bebida</label>
             <select id="add-bebida" required>
                 <option value="" disabled selected>Selecione a bebida...</option>
-                <option value="Coca-Cola Lata
+                <option value="Coca-Cola Lata">🥤 Coca-Cola Lata</option>
+                <option value="Guaraná Lata">🥤 Guaraná Lata</option>
+                <option value="Água Mineral">💧 Água Mineral</option>
+                <option value="Sumo Natural">🍊 Sumo Natural</option>
+                <option value="Sem Bebida">🚫 Apenas o lanche</option>
+            </select>
+            
+            <button type="submit" class="btn" style="width: 100%; margin-top: 6px;">
+              <i class="fas fa-plus"></i> Adicionar à Fila
+            </button>
+          </form>
+        </section>
+      </aside>
+    </div>
+
+    <div id="tab-historico" class="tab-content full-width">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-info">
+            <h4>Pedidos Atendidos Hoje</h4>
+            <span id="stat-total-atendidos">0</span>
+          </div>
+          <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+        </div>
+        <div class="stat-card success">
+          <div class="stat-info">
+            <h4>Lanche Mais Pedido</h4>
+            <span id="stat-top-lanche" style="font-size: 1.35rem;">--</span>
+          </div>
+          <div class="stat-icon"><i class="fas fa-hamburger"></i></div>
+        </div>
+        <div class="stat-card warning">
+          <div class="stat-info">
+            <h4>Tempo Médio de Espera</h4>
+            <span id="stat-tempo-medio">~12 min</span>
+          </div>
+          <div class="stat-icon"><i class="fas fa-clock"></i></div>
+        </div>
+      </div>
+
+      <section class="card-box">
+        <h2><i class="fas fa-clipboard-list"></i> Histórico de Pedidos Concluídos</h2>
+        <p style="font-size: 0.9rem; color: var(--text-muted); margin: -14px 0 22px 0;">
+          Registo dos clientes chamados e atendidos recentemente.
+        </p>
+        <ul id="history-list" class="history-list">
+          <li style="justify-content: center; color: var(--text-muted); padding: 30px; border-left: none; background: transparent; box-shadow: none;">
+            Nenhum pedido concluído recentemente nesta sessão.
+          </li>
+        </ul>
+      </section>
+    </div>
+  </main>
+
+  <!-- Toast de notificação -->
+  <div id="toast"></div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "firebase/app": "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js",
+      "firebase/firestore": "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js",
+      "qrcode": "https://cdn.jsdelivr.net/npm/qrcode@1.5.3/+esm"
+    }
+  }
+  </script>
+  
+  <script>
+    function switchTab(tabName, evt) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active', 'full-width'));
+      document.querySelectorAll('.nav-tab-btn').forEach(el => el.classList.remove('active'));
+      
+      const target = (evt && evt.currentTarget) || (window.event && window.event.currentTarget);
+      
+      if (tabName === 'fila') {
+        document.getElementById('tab-fila').classList.add('active');
+      } else if (tabName === 'historico') {
+        const histTab = document.getElementById('tab-historico');
+        histTab.classList.add('active', 'full-width');
+      }
+      
+      if (target) target.classList.add('active');
+    }
+  </script>
+
+  <script type="module" src="app.js" defer></script>
+
+  <footer>
+    <p>Desenvolvido por Leonardo Goulart Lopes © 2026 — Sistema de Fila Virtual para Lancheria</p>
+  </footer>
+</body>
+</html>
