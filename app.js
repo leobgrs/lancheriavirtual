@@ -26,9 +26,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const toastEl = document.getElementById('toast');
 
     // ============================================================
-    // 🚨 V4.1 — BANNER DE "SAIU DA ABA" COM BARRA DE PROGRESSO
+    // 🚨 V4.2 — BANNER DE "SAIU DA ABA" COM RESET DE ANIMAÇÃO
     // ============================================================
-    const BANNER_DURATION = 10000; // 5 segundos
+    const BANNER_DURATION = 10000; // 10 segundos
     let awayBannerTimeout = null;
 
     const awayBanner = document.createElement('div');
@@ -58,11 +58,11 @@ document.addEventListener('DOMContentLoaded', () => {
             z-index: 99999;
             background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%);
             color: #fff;
-            padding: 16px 24px;
+            padding: 18px 24px 22px 24px;
             font-family: 'Inter', sans-serif;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-            transform: translateY(-100%);
-            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+            transform: translateY(-120%);
+            transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
             display: flex;
             justify-content: center;
             pointer-events: none;
@@ -74,97 +74,110 @@ document.addEventListener('DOMContentLoaded', () => {
             cursor: pointer; 
         }
         
-        /* Barra de progresso no fundo do banner */
+        /* Barra de progresso GROSSA no fundo do banner */
         #away-banner::after {
             content: '';
             position: absolute;
             bottom: 0; left: 0;
-            height: 4px;
-            background: linear-gradient(90deg, #fca5a5 0%, #fbbf24 100%);
+            height: 8px;
+            background: linear-gradient(90deg, #fbbf24 0%, #f59e0b 50%, #ef4444 100%);
             width: 0%;
-            transition: width ${BANNER_DURATION}ms linear;
+            transition: width 10s linear;
+            box-shadow: 0 0 12px rgba(251, 191, 36, 0.6);
         }
         #away-banner.show::after {
             width: 100%;
         }
         
+        /* Pulso no banner inteiro */
+        @keyframes bannerFlash {
+            0%, 100% { box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5), inset 0 0 0 0 rgba(255,255,255,0); }
+            50% { box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5), inset 0 0 60px 0 rgba(255,255,255,0.06); }
+        }
+        #away-banner.show {
+            animation: bannerFlash 2s ease-in-out infinite;
+        }
+        
         .away-banner-content {
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: 18px;
             max-width: 900px;
             width: 100%;
         }
         .away-banner-icon {
-            width: 48px; height: 48px;
-            background: rgba(255,255,255,0.15);
+            width: 54px; height: 54px;
+            background: rgba(255,255,255,0.18);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5rem;
-            animation: awayPulse 1.5s infinite;
+            font-size: 1.7rem;
+            animation: awayPulse 1.2s infinite;
             flex-shrink: 0;
             color: #fca5a5;
         }
         @keyframes awayPulse {
-            0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,255,255,0.5); }
-            50% { transform: scale(1.05); box-shadow: 0 0 0 12px rgba(255,255,255,0); }
+            0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,255,255,0.6); }
+            50% { transform: scale(1.1); box-shadow: 0 0 0 16px rgba(255,255,255,0); }
         }
         .away-banner-text {
             flex: 1;
             text-align: left;
             display: flex;
             flex-direction: column;
-            gap: 2px;
+            gap: 4px;
         }
         .away-banner-text strong {
-            font-size: 1rem;
+            font-size: 1.05rem;
             font-weight: 700;
             letter-spacing: -0.01em;
+            line-height: 1.3;
         }
         .away-banner-text span {
             font-size: 0.85rem;
-            opacity: 0.85;
+            opacity: 0.9;
+            line-height: 1.4;
         }
         .away-banner-hint {
-            font-size: 0.7rem;
-            opacity: 0.6;
-            margin-top: 4px;
+            font-size: 0.72rem;
+            opacity: 0.65;
+            margin-top: 6px;
             font-style: italic;
         }
         .away-banner-count {
-            background: rgba(255,255,255,0.2);
-            padding: 8px 16px;
-            border-radius: 12px;
+            background: rgba(255,255,255,0.22);
+            padding: 10px 18px;
+            border-radius: 14px;
             display: flex;
             flex-direction: column;
             align-items: center;
             flex-shrink: 0;
             backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.15);
         }
         .away-banner-count.hidden { display: none; }
         .away-banner-count span {
             font-family: 'Poppins', sans-serif;
-            font-size: 1.5rem;
+            font-size: 1.6rem;
             font-weight: 800;
             line-height: 1;
         }
         .away-banner-count small {
-            font-size: 0.7rem;
-            opacity: 0.85;
-            margin-top: 2px;
+            font-size: 0.68rem;
+            opacity: 0.9;
+            margin-top: 3px;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
+            letter-spacing: 0.06em;
         }
 
         @media (max-width: 600px) {
-            #away-banner { padding: 12px 16px; }
-            .away-banner-icon { width: 40px; height: 40px; font-size: 1.2rem; }
-            .away-banner-text strong { font-size: 0.9rem; }
-            .away-banner-text span { font-size: 0.75rem; }
-            .away-banner-count { padding: 6px 12px; }
-            .away-banner-count span { font-size: 1.2rem; }
+            #away-banner { padding: 14px 16px 18px 16px; }
+            .away-banner-icon { width: 44px; height: 44px; font-size: 1.3rem; }
+            .away-banner-text strong { font-size: 0.92rem; }
+            .away-banner-text span { font-size: 0.76rem; }
+            .away-banner-count { padding: 8px 14px; }
+            .away-banner-count span { font-size: 1.3rem; }
         }
     `;
     document.head.appendChild(awayBannerStyle);
@@ -177,10 +190,13 @@ document.addEventListener('DOMContentLoaded', () => {
             clearTimeout(awayBannerTimeout);
             awayBannerTimeout = null;
         }
+        const countEl = document.getElementById('away-banner-count');
+        if (countEl) countEl.classList.add('hidden');
+        pendingOrdersWhileAway = 0;
     });
 
     // ============================================================
-    // 🔊 SISTEMA DE ÁUDIO BLINDADO — V4.1
+    // 🔊 SISTEMA DE ÁUDIO BLINDADO — V4.2
     // ============================================================
     let audioCtx = null;
     let soundEnabled = false;
@@ -473,23 +489,24 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ============================================================
-    // DETECÇÃO DE SAÍDA / VOLTA À ABA (V4.1 — 5 SEGUNDOS)
+    // DETECÇÃO DE SAÍDA / VOLTA À ABA (V4.2 — COM RESET DE ANIMAÇÃO)
     // ============================================================
     document.addEventListener('visibilitychange', () => {
         if (document.hidden) {
             // ===== OPERADOR SAIU DA ABA =====
             isAway = true;
             console.log('👋 Operador saiu da aba');
-            
-            // Mostra o banner
+
+            // 🔧 CORRIGIDO: Força reset da animação CSS
+            awayBanner.classList.remove('show');
+            void awayBanner.offsetWidth;   // força reflow (bug fix da barra de progresso)
             awayBanner.classList.add('show');
-            
-            // Cancela timeout anterior
+
             if (awayBannerTimeout) {
                 clearTimeout(awayBannerTimeout);
                 awayBannerTimeout = null;
             }
-            
+
         } else {
             // ===== OPERADOR VOLTOU À ABA =====
             isAway = false;
@@ -506,29 +523,32 @@ document.addEventListener('DOMContentLoaded', () => {
                 const count = pendingOrdersWhileAway;
                 pendingOrdersWhileAway = 0;
 
-                // Atualiza o texto do banner
                 const titleEl = document.getElementById('away-banner-title');
                 const subtitleEl = document.getElementById('away-banner-subtitle');
                 if (titleEl) titleEl.textContent = `⚠️ ${count} pedido(s) chegaram enquanto você estava fora!`;
                 if (subtitleEl) subtitleEl.textContent = 'Verifique a fila e chame o próximo.';
 
-                // Toca o bipe e mostra toast
                 setTimeout(() => {
                     showToast(`⚠️ ${count} pedido(s) chegaram enquanto você estava fora!`, 'error', 8000);
                     setTimeout(() => playBeep('new'), 300);
                 }, 400);
 
-                // Esconde o contador
                 const countEl = document.getElementById('away-banner-count');
                 if (countEl) countEl.classList.add('hidden');
             }
 
-            // Mantém o banner 5 segundos e depois esconde
+            // 🔧 CORRIGIDO: Reaplica o reflow para reiniciar a barra de progresso
+            awayBanner.classList.remove('show');
+            void awayBanner.offsetWidth;
+            awayBanner.classList.add('show');
+
             if (awayBannerTimeout) clearTimeout(awayBannerTimeout);
+            console.log(`⏱️ Agendando fecho em ${BANNER_DURATION}ms (${BANNER_DURATION/1000}s)`);
+
             awayBannerTimeout = setTimeout(() => {
+                console.log('🔚 Fechando banner');
                 awayBanner.classList.remove('show');
-                
-                // Restaura o texto padrão
+
                 const titleEl = document.getElementById('away-banner-title');
                 const subtitleEl = document.getElementById('away-banner-subtitle');
                 if (titleEl) titleEl.textContent = '⚠️ Você saiu do painel!';
@@ -553,6 +573,13 @@ document.addEventListener('DOMContentLoaded', () => {
             countEl.classList.remove('hidden');
         }
 
+        // 🔧 CORRIGIDO: Cancela o timer de auto-fecho se há pedidos pendentes
+        // (o banner fica até o operador clicar)
+        if (awayBannerTimeout) {
+            clearTimeout(awayBannerTimeout);
+            awayBannerTimeout = null;
+        }
+
         if (isAway && soundEnabled) {
             try {
                 if (audioCtx && audioCtx.state === 'running') {
@@ -569,7 +596,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateSoundBarUI();
 
     // ============================================================
-    // FIM DO SISTEMA DE ÁUDIO V4.1
+    // FIM DO SISTEMA DE ÁUDIO V4.2
     // ============================================================
 
 
