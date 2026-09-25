@@ -14,82 +14,139 @@ document.addEventListener('DOMContentLoaded', () => {
     const emptyQueueMessage = document.getElementById('empty-queue-message');
     const callNextBtn = document.getElementById('call-next-btn');
 
-    // Elementos de estatísticas
     const statTotalAtendidos = document.getElementById('stat-total-atendidos');
     const statTopLanche = document.getElementById('stat-top-lanche');
 
-    // Sounds
-    const addSound = document.getElementById('add-sound');
-    const callSound = document.getElementById('call-sound');
-    const removeSound = document.getElementById('remove-sound');
-
-    // Forçar volume máximo
-    if (addSound) addSound.volume = 1.0;
-    if (callSound) callSound.volume = 1.0;
-    if (removeSound) removeSound.volume = 1.0;
-
-    // ESTADO DO SOM (Ligar / Desligar através da barra no topo)
+    // ============================================================
+    // 🔊 SISTEMA DE ÁUDIO BLINDADO COM WEB AUDIO API
+    // ============================================================
+    let audioCtx = null;
     let soundEnabled = false;
     const soundControlBar = document.getElementById('sound-control-bar');
     const soundIcon = document.getElementById('sound-icon');
     const soundText = document.getElementById('sound-text');
 
-    // FUNÇÃO BLINDADA PARA ÁUDIO EM SEGUNDO PLANO
-    function tocarAlarme(elementoAudio) {
-        if (!elementoAudio) return;
-        
-        elementoAudio.pause();
-        elementoAudio.currentTime = 0;
-        
-        // Um pequeno atraso (50ms) ajuda o navegador a processar o áudio caso a aba esteja escondida/minimizada
-        setTimeout(() => {
-            const playPromise = elementoAudio.play();
-            if (playPromise !== undefined) {
-                playPromise.catch(erro => {
-                    console.warn("Navegador bloqueou o áudio dinâmico (aba escondida?). Recarregando...", erro);
-                    elementoAudio.load(); 
-                });
+    // Inicializa/desbloqueia o AudioContext numa interação do usuário
+    function unlockAudio() {
+        try {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             }
-        }, 50);
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            return true;
+        } catch (e) {
+            console.error('Erro ao inicializar AudioContext:', e);
+            return false;
+        }
     }
 
+    // Toca uma sequência de bipes (padrão profissional de notificação)
+    // type: 'new' (novo pedido), 'call' (chamada), 'remove' (remoção)
+    function playBeep(type = 'new') {
+        if (!soundEnabled) return;
+        if (!unlockAudio()) return;
+
+        const now = audioCtx.currentTime;
+
+        // Configuração de frequências por tipo
+        let frequencies = [];
+        let durations = [];
+        let gainValue = 0.4;
+
+        if (type === 'new') {
+            // Dois bipes curtos e agudos (novo pedido)
+            frequencies = [880, 1320];
+            durations = [0.15, 0.2];
+        } else if (type === 'call') {
+            // Três bipes (chamada)
+            frequencies = [660, 880, 1100];
+            durations = [0.12, 0.12, 0.25];
+        } else if (type === 'remove') {
+            // Um bipe descendente (remoção)
+            frequencies = [600, 400];
+            durations = [0.1, 0.15];
+        }
+
+        let startTime = now;
+        frequencies.forEach((freq, i) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, startTime);
+
+            // Envelope para evitar cliques
+            gain.gain.setValueAtTime(0, startTime);
+            gain.gain.linearRampToValueAtTime(gainValue, startTime + 0.01);
+            gain.gain.exponentialRampToValueAtTime(0.0001, startTime + durations[i]);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.start(startTime);
+            osc.stop(startTime + durations[i] + 0.02);
+
+            startTime += durations[i] + 0.05;
+        });
+
+        // Vibração no celular (se suportado)
+        if (navigator.vibrate) {
+            navigator.vibrate(type === 'new' ? [100, 50, 100] : [80, 40, 80]);
+        }
+    }
+
+    // Toggle do som
     if (soundControlBar) {
         soundControlBar.addEventListener('click', () => {
+            const ok = unlockAudio();
+            if (!ok) {
+                alert('O seu navegador não suporta áudio. Verifique as permissões do site.');
+                return;
+            }
+
             soundEnabled = !soundEnabled;
 
             if (soundEnabled) {
-                // TOCA O SOM DE TESTE COMPLETO PARA OBTER PERMISSÃO TOTAL DO NAVEGADOR
-                if (addSound) {
-                    addSound.currentTime = 0;
-                    addSound.play().catch(e => console.log("Erro no unlock de áudio:", e));
-                }
+                // Testa o som imediatamente para "desbloquear" de vez
+                playBeep('new');
                 
                 soundControlBar.style.background = '#d4edda';
                 soundControlBar.style.color = '#155724';
                 soundIcon.className = 'fas fa-volume-up';
                 soundIcon.style.color = '#1cc88a';
-                soundText.textContent = 'Alarme Sonoro Ativado (Som de Teste Reproduzido)';
+                soundText.textContent = '🔔 Alarme Sonoro ATIVO (Clique para desativar)';
             } else {
                 soundControlBar.style.background = '#e4e6eb';
                 soundControlBar.style.color = '#4b4f56';
                 soundIcon.className = 'fas fa-volume-mute';
                 soundIcon.style.color = '#e74a3b';
-                soundText.textContent = 'Alarme Sonoro Desativado (Clique para Ativar)';
+                soundText.textContent = '🔕 Alarme Sonoro DESATIVADO (Clique para ativar)';
             }
         });
     }
 
+    // Mantém o AudioContext vivo quando a aba volta ao foco
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && soundEnabled && audioCtx && audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+    });
+
+    // ============================================================
+    // FIM DO SISTEMA DE ÁUDIO
+    // ============================================================
+
     const queueCollection = collection(db, "queue");
     const historyCollection = collection(db, "history");
 
-    // Variáveis de controle de paginação
     let currentPage = 1;
     const itemsPerPage = 10;
-    let allPeople = []; // Guarda a fila inteira
+    let allPeople = [];
 
-    // Renderizar Fila de Espera com Paginação
     const renderQueue = (people) => {
-        allPeople = people; // Atualiza a lista global com os dados do Firebase
+        allPeople = people;
         if (!queueList) return;
         
         queueList.innerHTML = '';
@@ -105,20 +162,14 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (emptyQueueMessage) emptyQueueMessage.style.display = 'none';
 
-        // Lógica matemática da paginação
         const totalPages = Math.ceil(people.length / itemsPerPage);
-        
-        // Evita ficar preso numa página vazia caso apaguem os itens
         if (currentPage > totalPages) currentPage = totalPages || 1; 
 
-        // Corta os itens exatos da página atual
         const startIndex = (currentPage - 1) * itemsPerPage;
         const endIndex = startIndex + itemsPerPage;
         const paginatedPeople = people.slice(startIndex, endIndex);
 
-        // Renderiza apenas os itens da página atual
         paginatedPeople.forEach((person, index) => {
-            // Calcula o número real na fila, e não apenas o index da página
             const actualPosition = startIndex + index + 1; 
             
             const li = document.createElement('li');
@@ -144,10 +195,7 @@ document.addEventListener('DOMContentLoaded', () => {
             queueList.appendChild(li);
         });
 
-        // Constrói os botões HTML da paginação
         if (totalPages > 1 && paginationControls) {
-            
-            // Botão "Voltar"
             const btnPrev = document.createElement('button');
             btnPrev.className = 'page-btn';
             btnPrev.innerHTML = '<i class="fas fa-chevron-left"></i>';
@@ -155,7 +203,6 @@ document.addEventListener('DOMContentLoaded', () => {
             btnPrev.onclick = () => { currentPage--; renderQueue(allPeople); };
             paginationControls.appendChild(btnPrev);
 
-            // Botões numéricos (1, 2, 3...)
             for (let i = 1; i <= totalPages; i++) {
                 const btnPage = document.createElement('button');
                 btnPage.className = `page-btn ${i === currentPage ? 'active' : ''}`;
@@ -164,7 +211,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 paginationControls.appendChild(btnPage);
             }
 
-            // Botão "Avançar"
             const btnNext = document.createElement('button');
             btnNext.className = 'page-btn';
             btnNext.innerHTML = '<i class="fas fa-chevron-right"></i>';
@@ -174,7 +220,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // Renderizar Histórico e Atualizar Estatísticas
     const renderHistory = (historyDocs) => {
         if (!historyList) return;
         historyList.innerHTML = '';
@@ -226,29 +271,36 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // ESCUTA EM TEMPO REAL DO FIREBASE
+    // ============================================================
+    // ESCUTA EM TEMPO REAL DO FIREBASE COM DETECÇÃO DE NOVOS PEDIDOS
+    // ============================================================
     let isInitialLoad = true;
+    // Guardamos os IDs conhecidos para comparar. MUITO mais confiável que docChanges()
+    // porque docChanges() pode se perder se a conexão oscilar.
+    let knownIds = new Set();
+
     const qQueue = query(queueCollection, orderBy("timestamp", "asc"));
     
     onSnapshot(qQueue, (snapshot) => {
-        if (!isInitialLoad && soundEnabled) {
-            let hasNewAdded = false;
-            
-            snapshot.docChanges().forEach((change) => {
-                if (change.type === "added") {
-                    hasNewAdded = true;
-                }
+        const people = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const currentIds = new Set(people.map(p => p.id));
+
+        // Detecta IDs que apareceram agora e não estavam antes
+        if (!isInitialLoad) {
+            let hasNew = false;
+            currentIds.forEach(id => {
+                if (!knownIds.has(id)) hasNew = true;
             });
 
-            // Dispara o alarme usando a nova função com setTimeout
-            if (hasNewAdded && addSound) {
-                tocarAlarme(addSound);
+            if (hasNew && soundEnabled) {
+                console.log('🔔 Novo pedido detectado — tocando alarme');
+                playBeep('new');
             }
         }
 
-        const people = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        // Atualiza o conjunto de IDs conhecidos
+        knownIds = currentIds;
         renderQueue(people);
-        
         isInitialLoad = false;
     });
 
@@ -258,7 +310,6 @@ document.addEventListener('DOMContentLoaded', () => {
         renderHistory(history);
     });
 
-    // Adicionar Manualmente pelo Painel
     const addPerson = async (name, whatsapp, lanche, bebida) => {
         if (name && whatsapp) {
             try {
@@ -289,7 +340,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Remover da Fila
     if (queueList) {
         queueList.addEventListener('click', (e) => {
             const removeButton = e.target.closest('.btn-remove');
@@ -298,7 +348,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const personId = li.dataset.id;
                 if (confirm("Tem certeza que deseja remover este pedido da lista?")) {
                     deleteDoc(doc(db, "queue", personId)).then(() => {
-                        if (removeSound) removeSound.play().catch(e => console.log("Áudio bloqueado:", e));
+                        playBeep('remove');
                     }).catch(error => {
                         console.error("Erro ao remover:", error);
                     });
@@ -307,7 +357,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Chamar Próximo (Envia WhatsApp e move para o Histórico)
     if (callNextBtn) {
         callNextBtn.addEventListener('click', async () => {
             const asArray = Array.from(queueList.children);
@@ -331,7 +380,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const whatsappUrl = `https://wa.me/${numeroLimpo}?text=${encodeURIComponent(mensagem)}`;
                 
                 window.open(whatsappUrl, '_blank');
-                if (callSound) callSound.play().catch(e => console.log("Áudio bloqueado:", e));
+                playBeep('call');
 
                 const listItem = queueList.querySelector(`[data-id="${person.id}"]`);
                 if(listItem) {
@@ -356,7 +405,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Gerar QR Code
     const generateQRCode = () => {
         if (!qrcodeContainer) return;
         const currentUrl = window.location.href.split('?')[0];
