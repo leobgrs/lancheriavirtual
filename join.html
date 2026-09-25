@@ -1,457 +1,912 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fazer Pedido - Lancheria</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#ff5e2c">
+  <title>Fazer Pedido — Lancheria</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    /* ============================================================
+       DESIGN TOKENS — Mesmos do painel
+       ============================================================ */
+    :root {
+      --primary: #ff5e2c;
+      --primary-dark: #e04b1f;
+      --primary-light: #ffb199;
+      --primary-soft: rgba(255, 94, 44, 0.08);
+      --primary-gradient: linear-gradient(135deg, #ff5e2c 0%, #ff2a5f 100%);
+      --primary-gradient-soft: linear-gradient(135deg, rgba(255,94,44,0.12) 0%, rgba(255,42,95,0.08) 100%);
+      
+      --success: #10b981;
+      --success-dark: #059669;
+      --success-soft: rgba(16, 185, 129, 0.12);
+      --danger: #ef4444;
+      --danger-soft: rgba(239, 68, 68, 0.12);
+      --warning: #f59e0b;
+      --warning-soft: rgba(245, 158, 11, 0.12);
+      --info: #3b82f6;
+      
+      --bg-app: #fafbfc;
+      --bg-mesh-1: rgba(255, 94, 44, 0.06);
+      --bg-mesh-2: rgba(255, 42, 95, 0.04);
+      --bg-mesh-3: rgba(59, 130, 246, 0.04);
+      --surface: #ffffff;
+      --surface-2: #f8fafc;
+      --surface-3: #f1f5f9;
+      
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #94a3b8;
+      
+      --border: #e2e8f0;
+      --border-strong: #cbd5e1;
+      --border-subtle: rgba(226, 232, 240, 0.6);
+      
+      --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
+      --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+      --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.07), 0 2px 4px rgba(15, 23, 42, 0.04);
+      --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.08), 0 4px 12px rgba(15, 23, 42, 0.04);
+      --shadow-xl: 0 24px 48px rgba(15, 23, 42, 0.10), 0 8px 20px rgba(15, 23, 42, 0.05);
+      --shadow-glow: 0 0 0 4px rgba(255, 94, 44, 0.12);
+      
+      --radius-sm: 10px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --radius-xl: 26px;
+      --radius-full: 9999px;
+      
+      --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+      --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-strong);
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb:hover { background: var(--primary); }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 0;
+      background: var(--bg-app);
+      background-image: 
+        radial-gradient(at 0% 0%, var(--bg-mesh-1) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, var(--bg-mesh-2) 0px, transparent 50%),
+        radial-gradient(at 50% 100%, var(--bg-mesh-3) 0px, transparent 50%);
+      background-attachment: fixed;
+      color: var(--text-secondary);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      align-items: center;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      letter-spacing: -0.011em;
+      padding: 24px 16px;
+    }
+
+    /* ============================================================
+       CONTAINER PRINCIPAL
+       ============================================================ */
+    .container.join-layout {
+      width: 100%;
+      max-width: 520px;
+      background: var(--surface);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-xl);
+      overflow: hidden;
+      border: 1px solid var(--border-subtle);
+      position: relative;
+      animation: cardEnter 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
     
-    <style>
-        :root {
-            /* Paleta Moderna (Warm/Food Tech) igual ao Painel */
-            --primary: #ff5e2c;
-            --primary-dark: #e04b1f;
-            --primary-gradient: linear-gradient(135deg, #ff5e2c 0%, #ff2a5f 100%);
-            
-            --success: #10b981;
-            --success-light: #d1fae5;
-            --success-dark: #065f46;
-            
-            --warning: #f59e0b;
-            --warning-light: #fef3c7;
-            --warning-dark: #92400e;
-            
-            --bg-color: #f1f5f9;
-            --card-bg: #ffffff;
-            --text-color: #64748b;
-            --heading-color: #0f172a;
-            --border-color: #e2e8f0;
-            
-            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
-            
-            --radius-sm: 8px;
-            --radius-md: 12px;
-            --radius-lg: 16px;
-        }
+    @keyframes cardEnter {
+      from { opacity: 0; transform: translateY(24px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
 
-        body {
-            font-family: 'Poppins', sans-serif;
-            margin: 0;
-            padding: 0;
-            background: var(--bg-color);
-            color: var(--text-color);
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-            align-items: center;
-            -webkit-font-smoothing: antialiased;
-        }
+    /* ============================================================
+       HEADER
+       ============================================================ */
+    header.join-header {
+      background: var(--primary-gradient);
+      color: #fff;
+      padding: 30px 24px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    header.join-header::before {
+      content: '';
+      position: absolute;
+      top: -50%; right: -10%;
+      width: 300px; height: 300px;
+      background: radial-gradient(circle, rgba(255,255,255,0.18) 0%, transparent 70%);
+      animation: headerGlow 8s ease-in-out infinite alternate;
+    }
+    
+    header.join-header::after {
+      content: '';
+      position: absolute;
+      bottom: -60%; left: -5%;
+      width: 250px; height: 250px;
+      background: radial-gradient(circle, rgba(255,255,255,0.10) 0%, transparent 70%);
+    }
+    
+    @keyframes headerGlow {
+      from { transform: translate(0, 0) scale(1); opacity: 0.8; }
+      to { transform: translate(-30px, 30px) scale(1.15); opacity: 1; }
+    }
+    
+    header.join-header > * { position: relative; z-index: 1; }
 
-        .container.join-layout {
-            width: 100%;
-            max-width: 480px;
-            margin: 40px auto;
-            background: var(--card-bg);
-            border-radius: var(--radius-lg);
-            box-shadow: var(--shadow-lg);
-            overflow: hidden;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
+    header.join-header h1 {
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    }
+    
+    header.join-header h1 i {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 42px; height: 42px;
+      background: rgba(255,255,255,0.22);
+      border-radius: 13px;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      font-size: 1.05rem;
+      border: 1px solid rgba(255,255,255,0.25);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.3);
+    }
 
-        header {
-            background: var(--primary-gradient);
-            color: #fff;
-            padding: 24px;
-            text-align: center;
-            box-shadow: var(--shadow-md);
-        }
+    header.join-header .subtitle {
+      margin: 12px 0 0 0;
+      font-size: 0.9rem;
+      opacity: 0.92;
+      font-weight: 400;
+      max-width: 320px;
+      margin-left: auto;
+      margin-right: auto;
+      line-height: 1.5;
+    }
 
-        header h1 {
-            margin: 0;
-            font-size: 1.5rem;
-            font-weight: 700;
-            letter-spacing: -0.5px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-        }
+    /* ============================================================
+       SEÇÕES
+       ============================================================ */
+    #join-section, #success-section {
+      padding: 28px 26px;
+    }
 
-        #join-section, #success-section {
-            padding: 30px;
-            animation: fadeIn 0.4s ease forwards;
-        }
+    #join-section p.intro {
+      margin: 0 0 24px 0;
+      font-size: 0.92rem;
+      text-align: center;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+    /* ============================================================
+       PASSO INDICATOR
+       ============================================================ */
+    .steps {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+    
+    .step-dot {
+      width: 28px;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--border);
+      transition: all var(--transition);
+    }
+    
+    .step-dot.active {
+      background: var(--primary-gradient);
+      width: 40px;
+      box-shadow: 0 2px 8px rgba(255, 94, 44, 0.3);
+    }
 
-        #join-section p {
-            margin-top: 0;
-            font-size: 0.95rem;
-            text-align: center;
-            margin-bottom: 25px;
-            color: var(--text-color);
-        }
+    /* ============================================================
+       FORMULÁRIO
+       ============================================================ */
+    form label {
+      font-weight: 600;
+      font-size: 0.85rem;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 8px;
+      letter-spacing: -0.005em;
+    }
+    
+    form label i {
+      color: var(--primary);
+      font-size: 0.9rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      background: var(--primary-soft);
+      border-radius: 6px;
+    }
 
-        /* Formulário e Inputs */
-        form input, form select {
-            width: 100%;
-            padding: 14px 16px;
-            margin: 8px 0 20px 0;
-            border-radius: var(--radius-sm);
-            border: 1px solid var(--border-color);
-            background: #f8fafc;
-            color: var(--heading-color);
-            box-sizing: border-box;
-            font-family: 'Poppins', sans-serif;
-            font-size: 0.95rem;
-            transition: all 0.2s ease;
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            appearance: none;
-        }
+    form input, form select {
+      width: 100%;
+      padding: 14px 16px;
+      margin: 0 0 18px 0;
+      border-radius: var(--radius-sm);
+      border: 1.5px solid var(--border);
+      background: var(--surface-2);
+      color: var(--text-primary);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 500;
+      transition: all var(--transition-fast);
+      appearance: none;
+      -webkit-appearance: none;
+    }
+    
+    form input::placeholder { color: var(--text-muted); }
+    
+    form input:focus, form select:focus {
+      outline: none;
+      border-color: var(--primary);
+      background: var(--surface);
+      box-shadow: var(--shadow-glow);
+    }
+    
+    form select {
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right 16px center;
+      padding-right: 44px;
+      cursor: pointer;
+    }
 
-        /* Adiciona a setinha no select */
-        form select {
-            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2364748b%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
-            background-repeat: no-repeat;
-            background-position: right 16px top 50%;
-            background-size: 12px auto;
-        }
+    /* ============================================================
+       RESUMO DO PEDIDO (calculadora de total)
+       ============================================================ */
+    #order-summary {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px 18px;
+      margin: -8px 0 22px 0;
+      transition: all var(--transition);
+    }
+    
+    #order-summary:empty {
+      display: none;
+    }
+    
+    #order-summary .summary-line {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      font-size: 0.9rem;
+    }
+    
+    #order-summary .summary-line:not(:last-child) {
+      border-bottom: 1px dashed var(--border);
+    }
+    
+    #order-summary .summary-line span:first-child {
+      color: var(--text-secondary);
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    #order-summary .summary-line span:last-child {
+      color: var(--text-primary);
+      font-weight: 700;
+      font-family: 'Poppins', sans-serif;
+    }
+    
+    #order-summary .summary-total {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 14px;
+      margin-top: 8px;
+      border-top: 2px solid var(--primary-soft);
+    }
+    
+    #order-summary .summary-total span:first-child {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+    
+    #order-summary .summary-total span:last-child {
+      font-family: 'Poppins', sans-serif;
+      font-size: 1.35rem;
+      font-weight: 800;
+      background: var(--primary-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.02em;
+    }
 
-        form input:focus, form select:focus {
-            outline: none;
-            border-color: var(--primary);
-            background: #ffffff;
-            box-shadow: 0 0 0 3px rgba(255, 94, 44, 0.15);
-        }
+    /* ============================================================
+       BOTÃO SUBMIT
+       ============================================================ */
+    button#submit-btn {
+      width: 100%;
+      background: var(--primary);
+      color: #ffffff;
+      font-family: 'Inter', sans-serif;
+      font-weight: 700;
+      font-size: 1rem;
+      letter-spacing: -0.005em;
+      border: none;
+      cursor: pointer;
+      border-radius: var(--radius-md);
+      padding: 18px 24px;
+      transition: all var(--transition);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 4px 14px rgba(255, 94, 44, 0.3);
+      margin-top: 4px;
+    }
+    
+    button#submit-btn::before {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 0; height: 0;
+      background: rgba(255,255,255,0.25);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      transition: width 0.6s, height 0.6s;
+    }
+    
+    button#submit-btn:hover::before { width: 500px; height: 500px; }
+    
+    button#submit-btn:hover {
+      background: var(--primary-dark);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 24px rgba(255, 94, 44, 0.4);
+    }
+    
+    button#submit-btn:active { transform: translateY(0); }
+    
+    button#submit-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
 
-        form label {
-            font-weight: 600;
-            font-size: 0.9rem;
-            color: var(--heading-color);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
+    /* ============================================================
+       TELA DE SUCESSO
+       ============================================================ */
+    .hidden { display: none !important; }
 
-        /* Botões */
-        button {
-            width: 100%;
-            background: var(--primary);
-            color: white;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-            border: none;
-            cursor: pointer;
-            border-radius: var(--radius-sm);
-            padding: 16px;
-            font-size: 1rem;
-            font-family: 'Poppins', sans-serif;
-            transition: all 0.2s ease;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            margin-top: 5px;
-        }
+    #success-section {
+      text-align: center;
+      animation: successEnter 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    
+    @keyframes successEnter {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
 
-        button:hover {
-            background: var(--primary-dark);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(224, 75, 31, 0.25);
-        }
+    /* Check animado */
+    .success-check {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 16px;
+      background: linear-gradient(135deg, var(--success) 0%, var(--success-dark) 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 12px 28px rgba(16, 185, 129, 0.35);
+      animation: checkPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s backwards;
+      position: relative;
+    }
+    
+    .success-check::after {
+      content: '';
+      position: absolute;
+      inset: -6px;
+      border-radius: 50%;
+      border: 2px solid var(--success);
+      opacity: 0.3;
+      animation: checkRipple 1.5s ease-out infinite;
+    }
+    
+    @keyframes checkPop {
+      0% { transform: scale(0) rotate(-45deg); }
+      100% { transform: scale(1) rotate(0deg); }
+    }
+    
+    @keyframes checkRipple {
+      0% { transform: scale(1); opacity: 0.5; }
+      100% { transform: scale(1.4); opacity: 0; }
+    }
+    
+    .success-check i {
+      color: #ffffff;
+      font-size: 2.2rem;
+    }
 
-        button:active {
-            transform: translateY(0);
-        }
+    #success-section h2 {
+      color: var(--text-primary);
+      margin: 0 0 6px 0;
+      font-family: 'Poppins', sans-serif;
+      font-size: 1.45rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    
+    #success-section .success-subtitle {
+      margin: 0 0 22px 0;
+      font-size: 0.92rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
 
-        /* Tela de Sucesso */
-        .hidden {
-            display: none !important;
-        }
+    /* Display de posição */
+    #status-display {
+      background: var(--primary-gradient-soft);
+      padding: 22px 20px;
+      border-radius: var(--radius-lg);
+      margin: 0 0 18px 0;
+      border: 1px solid rgba(255, 94, 44, 0.15);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    #status-display::before {
+      content: '';
+      position: absolute;
+      top: -20%; right: -10%;
+      width: 180px; height: 180px;
+      background: radial-gradient(circle, rgba(255, 94, 44, 0.15) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    
+    #status-display > * { position: relative; z-index: 1; }
+    
+    #status-display p {
+      margin: 0;
+      font-weight: 500;
+      color: var(--text-secondary);
+      font-size: 0.88rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
 
-        #success-section {
-            text-align: center;
-        }
+    #position-number {
+      font-family: 'Poppins', sans-serif;
+      font-size: 4rem;
+      font-weight: 800;
+      background: var(--primary-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1;
+      margin: 8px 0 4px 0;
+      letter-spacing: -0.04em;
+    }
 
-        #success-section h2 {
-            color: var(--success);
-            margin-top: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            font-size: 1.6rem;
-            letter-spacing: -0.5px;
-        }
+    #people-ahead {
+      font-size: 0.95rem;
+      color: var(--text-primary);
+      font-weight: 600;
+      margin: 0;
+    }
 
-        #status-display {
-            background: #f8fafc;
-            padding: 25px 20px;
-            border-radius: var(--radius-md);
-            margin: 20px 0;
-            border: 1px solid var(--border-color);
-        }
+    /* Info extra: tempo estimado */
+    .time-estimate {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(10px);
+      padding: 8px 14px;
+      border-radius: var(--radius-full);
+      margin-top: 14px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    
+    .time-estimate i {
+      color: var(--warning);
+    }
 
-        #status-display p {
-            margin: 0;
-            font-weight: 500;
-            color: var(--text-color);
-        }
+    /* Alerta de "quase pronto" */
+    #turn-alert {
+      background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+      color: var(--warning-dark, #92400e);
+      padding: 16px 18px;
+      border-radius: var(--radius-md);
+      margin-top: 18px;
+      border: 1px solid #fbbf24;
+      animation: pulseWarning 2s infinite;
+      text-align: center;
+    }
 
-        #position-number {
-            font-size: 4rem;
-            font-weight: 700;
-            color: var(--primary);
-            line-height: 1.1;
-            margin: 10px 0;
-            letter-spacing: -2px;
-        }
+    @keyframes pulseWarning {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
+      50% { box-shadow: 0 0 0 12px rgba(245, 158, 11, 0); }
+    }
 
-        #people-ahead {
-            font-size: 0.95rem;
-            color: var(--heading-color);
-            font-weight: 600;
-        }
+    #turn-alert h3 {
+      margin: 0 0 5px 0;
+      font-family: 'Poppins', sans-serif;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      color: #92400e;
+    }
 
-        /* Alerta de "Quase Pronto" animado */
-        #turn-alert {
-            background: var(--warning-light);
-            color: var(--warning-dark);
-            padding: 15px;
-            border-radius: var(--radius-sm);
-            margin-top: 20px;
-            border: 1px solid #fde68a;
-            animation: pulseWarning 2s infinite;
-        }
+    #turn-alert p {
+      margin: 0;
+      font-size: 0.85rem;
+      color: #a16207;
+      line-height: 1.5;
+    }
 
-        @keyframes pulseWarning {
-            0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
-            70% { box-shadow: 0 0 0 10px rgba(245, 158, 11, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
-        }
+    /* Detalhes do pedido */
+    #your-details {
+      text-align: left;
+      background: var(--surface);
+      padding: 18px 20px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      margin-bottom: 16px;
+      box-shadow: var(--shadow-xs);
+    }
+    
+    #your-details .detail-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      font-size: 0.92rem;
+    }
+    
+    #your-details .detail-row:not(:last-child) {
+      border-bottom: 1px dashed var(--border);
+    }
+    
+    #your-details .detail-label {
+      color: var(--text-muted);
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+    }
+    
+    #your-details .detail-label i {
+      color: var(--primary);
+      width: 16px;
+    }
+    
+    #your-details .detail-value {
+      color: var(--text-primary);
+      font-weight: 600;
+      text-align: right;
+    }
 
-        #turn-alert h3 {
-            margin: 0 0 5px 0;
-            font-size: 1.05rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
+    /* Aviso WhatsApp */
+    .whatsapp-alert {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(16, 185, 129, 0.04) 100%);
+      color: var(--text-primary);
+      padding: 16px 18px;
+      border-radius: var(--radius-md);
+      margin-bottom: 20px;
+      font-size: 0.9rem;
+      text-align: left;
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      line-height: 1.5;
+    }
 
-        #turn-alert p {
-            margin: 0;
-            font-size: 0.9rem;
-            color: var(--warning-dark);
-        }
+    .whatsapp-alert i {
+      font-size: 1.75rem;
+      color: var(--success);
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    
+    .whatsapp-alert strong {
+      color: var(--text-primary);
+      font-weight: 700;
+      display: block;
+      margin-bottom: 4px;
+    }
+    
+    .whatsapp-alert span {
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+    }
 
-        /* Detalhes do Pedido */
-        #your-details {
-            text-align: left;
-            background: #ffffff;
-            padding: 20px;
-            border-radius: var(--radius-md);
-            border: 1px solid var(--border-color);
-            margin-bottom: 20px;
-            box-shadow: var(--shadow-sm);
-        }
+    /* Botão "fazer outro pedido" */
+    #btn-novo-pedido {
+      width: 100%;
+      background: var(--surface-2);
+      color: var(--text-secondary);
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      font-size: 0.92rem;
+      border: 1.5px solid var(--border);
+      cursor: pointer;
+      border-radius: var(--radius-md);
+      padding: 14px 20px;
+      transition: all var(--transition);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    
+    #btn-novo-pedido:hover {
+      background: var(--surface);
+      border-color: var(--primary-light);
+      color: var(--primary);
+      transform: translateY(-1px);
+    }
 
-        #your-details p {
-            margin: 8px 0;
-            color: var(--heading-color);
-            font-size: 0.95rem;
-        }
+    /* ============================================================
+       FOOTER
+       ============================================================ */
+    footer {
+      text-align: center;
+      padding: 24px 20px 8px;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      max-width: 520px;
+      width: 100%;
+      line-height: 1.5;
+    }
 
-        #your-details p strong {
-            color: var(--text-color);
-            margin-right: 5px;
-        }
+    /* ============================================================
+       ACESSIBILIDADE
+       ============================================================ */
+    *:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
 
-        /* Alerta do WhatsApp */
-        .whatsapp-alert {
-            background: var(--success-light);
-            color: var(--success-dark);
-            padding: 16px;
-            border-radius: var(--radius-md);
-            margin-bottom: 20px;
-            font-size: 0.95rem;
-            text-align: left;
-            display: flex;
-            gap: 15px;
-            align-items: flex-start;
-            border: 1px solid #a7f3d0;
-            line-height: 1.5;
-        }
+    /* ============================================================
+       DARK MODE
+       ============================================================ */
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-app: #0a0f1a;
+        --bg-mesh-1: rgba(255, 94, 44, 0.08);
+        --bg-mesh-2: rgba(255, 42, 95, 0.05);
+        --bg-mesh-3: rgba(59, 130, 246, 0.05);
+        
+        --surface: #131a2b;
+        --surface-2: #0f1624;
+        --surface-3: #1a2235;
+        
+        --text-primary: #f1f5f9;
+        --text-secondary: #94a3b8;
+        --text-muted: #64748b;
+        
+        --border: #1e293b;
+        --border-strong: #334155;
+        --border-subtle: rgba(30, 41, 59, 0.8);
+        
+        --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+        --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+        --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.55);
+        --shadow-xl: 0 24px 48px rgba(0, 0, 0, 0.65);
+        
+        --primary-soft: rgba(255, 94, 44, 0.15);
+        --success-soft: rgba(16, 185, 129, 0.15);
+        --danger-soft: rgba(239, 68, 68, 0.15);
+        --warning-soft: rgba(245, 158, 11, 0.15);
+      }
+      
+      form input, form select {
+        background: var(--surface-2);
+        color: var(--text-primary);
+        border-color: var(--border-strong);
+      }
+      
+      .time-estimate {
+        background: rgba(255,255,255,0.05);
+        border-color: rgba(255,255,255,0.1);
+      }
+      
+      #turn-alert {
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(245, 158, 11, 0.08) 100%);
+        border-color: rgba(245, 158, 11, 0.3);
+        color: #fbbf24;
+      }
+      
+      #turn-alert h3 { color: #fbbf24; }
+      #turn-alert p { color: #fcd34d; }
+      
+      .whatsapp-alert {
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.08) 100%);
+        border-color: rgba(16, 185, 129, 0.3);
+      }
+    }
 
-        .whatsapp-alert i {
-            font-size: 1.6rem;
-            margin-top: 2px;
-            color: var(--success);
-        }
-
-        #btn-novo-pedido {
-            background: #64748b;
-        }
-
-        #btn-novo-pedido:hover {
-            background: #475569;
-            box-shadow: 0 4px 12px rgba(100, 116, 139, 0.25);
-        }
-
-        footer {
-            text-align: center;
-            padding: 20px;
-            font-size: 0.85rem;
-            color: #94a3b8;
-            width: 100%;
-            font-weight: 500;
-        }
-
-        /* Tema Escuro (Dark Mode) Nativo para Celulares */
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --bg-color: #0f172a;
-                --card-bg: #1e293b;
-                --text-color: #94a3b8;
-                --heading-color: #f8fafc;
-                --border-color: #334155;
-            }
-            
-            .container.join-layout { border: 1px solid #334155; }
-            
-            form input, form select { 
-                background: #0f172a; 
-                color: #f8fafc; 
-            }
-            
-            #status-display { 
-                background: #0f172a; 
-                border-color: #334155; 
-            }
-            
-            #your-details { 
-                background: #0f172a; 
-                border-color: #334155; 
-            }
-            
-            .whatsapp-alert { 
-                background: rgba(16, 185, 129, 0.1); 
-                border-color: rgba(16, 185, 129, 0.2); 
-                color: #34d399; 
-            }
-            
-            #turn-alert { 
-                background: rgba(245, 158, 11, 0.1); 
-                border-color: rgba(245, 158, 11, 0.2); 
-                color: #fbbf24; 
-            }
-            
-            #turn-alert p { color: #fcd34d; }
-        }
-
-        @media (max-width: 600px) {
-            .container.join-layout {
-                margin: 20px;
-                width: auto;
-            }
-        }
-    </style>
+    /* Reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
 </head>
 <body>
 
-    <div class="container join-layout">
-        <header>
-            <h1><i class="fas fa-utensils"></i> Fazer Pedido</h1>
-        </header>
-        
-        <div id="join-section">
-            <p>Preencha os dados e escolha o seu pedido para entrar na fila.</p>
-            <form id="join-form" class="join-form">
-                
-                <input type="text" id="join-name" placeholder="Seu Nome Completo" required>
-                <input type="tel" id="join-whatsapp" placeholder="Seu Nº WhatsApp (Ex: 55539...)" required>
-                
-                <!-- Escolha do Lanche -->
-                <label for="join-lanche"><i class="fas fa-hamburger"></i> Escolha o Lanche:</label>
-                <select id="join-lanche" required>
-                    <option value="" disabled selected>Selecione o lanche...</option>
-                    <option value="X-Burger">X-Burger</option>
-                    <option value="X-Salada">X-Salada</option>
-                    <option value="X-Bacon">X-Bacon</option>
-                    <option value="X-Tudo">X-Tudo</option>
-                </select>
-
-                <!-- Escolha da Bebida -->
-                <label for="join-bebida"><i class="fas fa-cocktail"></i> Escolha a Bebida:</label>
-                <select id="join-bebida" required>
-                    <option value="" disabled selected>Selecione a bebida...</option>
-                    <option value="Coca-Cola Lata">Coca-Cola Lata</option>
-                    <option value="Guaraná Lata">Guaraná Lata</option>
-                    <option value="Água Mineral">Água Mineral</option>
-                    <option value="Sumo Natural">Sumo Natural</option>
-                    <option value="Sem Bebida">Apenas o lanche</option>
-                </select>
-
-                <button type="submit" id="submit-btn"><i class="fas fa-arrow-right"></i> Enviar Pedido</button>
-            </form>
-        </div>
-
-        <div id="success-section" class="hidden">
-            <h2><i class="fas fa-check-circle"></i> Pedido Realizado!</h2>
-            
-            <div id="status-display">
-                <p>Sua posição na fila:</p>
-                <div id="position-number">--</div>
-                <p id="people-ahead">Aguardando...</p>
-                
-                <div id="turn-alert" class="hidden">
-                     <h3><i class="fas fa-bell"></i> O seu pedido está quase pronto!</h3>
-                     <p>Fique atento, já vai ser chamado para retirada.</p>
-                </div>
-            </div>
-            
-            <div id="your-details">
-                <p><strong>Nome:</strong> <span id="confirm-name"></span></p>
-                <p><strong>Pedido:</strong> <span id="confirm-pedido"></span></p>
-            </div>
-
-            <!-- Aviso amigável direcionando para o WhatsApp -->
-            <div class="whatsapp-alert">
-                <i class="fab fa-whatsapp"></i>
-                <div>
-                    <strong>Pode fechar esta página!</strong><br>
-                    Avisaremos você diretamente pelo WhatsApp assim que o seu pedido estiver pronto.
-                </div>
-            </div>
-
-            <!-- Botão para refazer o pedido se necessário -->
-            <button id="btn-novo-pedido" class="btn">
-                <i class="fas fa-redo"></i> Fazer Outro Pedido
-            </button>
-        </div>
-    </div>
+  <div class="container join-layout">
+    <header class="join-header">
+      <h1><i class="fas fa-utensils"></i> Fazer Pedido</h1>
+      <p class="subtitle">Escolha o seu lanche e entre na fila virtual. Avisamos no WhatsApp quando estiver pronto! 🍔</p>
+    </header>
     
-    <audio id="add-sound" src="add_sound.mp3"></audio>
-    <audio id="alert-sound" src="alert_sound.mp3"></audio>
+    <!-- ============================================
+         PASSO 1: FORMULÁRIO
+         ============================================ -->
+    <div id="join-section">
+      <div class="steps">
+        <div class="step-dot active"></div>
+        <div class="step-dot"></div>
+      </div>
+      
+      <p class="intro">Preencha os dados e escolha o seu pedido</p>
+      
+      <form id="join-form" class="join-form">
+        
+        <label for="join-name"><i class="fas fa-user"></i> Nome Completo</label>
+        <input type="text" id="join-name" placeholder="Ex: Maria Silva" required autocomplete="name">
+        
+        <label for="join-whatsapp"><i class="fab fa-whatsapp"></i> WhatsApp</label>
+        <input type="tel" id="join-whatsapp" placeholder="Ex: 53999887766" required autocomplete="tel" inputmode="numeric">
+        
+        <label for="join-lanche"><i class="fas fa-hamburger"></i> Escolha o Lanche</label>
+        <select id="join-lanche" required>
+          <option value="" disabled selected>Selecione o lanche...</option>
+          <option value="X-Burger" data-price="18">🍔 X-Burger — R$ 18,00</option>
+          <option value="X-Salada" data-price="21">🥗 X-Salada — R$ 21,00</option>
+          <option value="X-Bacon" data-price="24">🥓 X-Bacon — R$ 24,00</option>
+          <option value="X-Tudo" data-price="32">🍔 X-Tudo — R$ 32,00</option>
+        </select>
 
-    <script type="importmap">
-    {
-        "imports": {
-            "firebase/app": "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js",
-            "firebase/firestore": "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"
-        }
+        <label for="join-bebida"><i class="fas fa-cocktail"></i> Escolha a Bebida</label>
+        <select id="join-bebida" required>
+          <option value="" disabled selected>Selecione a bebida...</option>
+          <option value="Coca-Cola Lata" data-price="6">🥤 Coca-Cola Lata — R$ 6,00</option>
+          <option value="Guaraná Lata" data-price="6">🥤 Guaraná Lata — R$ 6,00</option>
+          <option value="Água Mineral" data-price="4">💧 Água Mineral — R$ 4,00</option>
+          <option value="Sumo Natural" data-price="8">🍊 Sumo Natural — R$ 8,00</option>
+          <option value="Sem Bebida" data-price="0">🚫 Apenas o lanche</option>
+        </select>
+
+        <!-- Resumo dinâmico do pedido -->
+        <div id="order-summary" aria-live="polite"></div>
+
+        <button type="submit" id="submit-btn">
+          <i class="fas fa-arrow-right"></i> Entrar na Fila        </button>
+      </form>
+    </div>
+
+    <!-- ============================================
+         PASSO 2: SUCESSO
+         ============================================ -->
+    <div id="success-section" class="hidden">
+      <div class="success-check">
+        <i class="fas fa-check"></i>
+      </div>
+      
+      <h2>Pedido Confirmado!</h2>
+      <p class="success-subtitle">Você entrou na fila. Vamos te avisar quando estiver pronto! 🎉</p>
+      
+      <div id="status-display">
+        <p>Sua posição na fila</p>
+        <div id="position-number">--</div>
+        <p id="people-ahead">Calculando...</p>
+        <div class="time-estimate">
+          <i class="fas fa-clock"></i>
+          <span>Tempo estimado: <span id="time-estimate-value">~12 min</span></span>
+        </div>
+        
+        <div id="turn-alert" class="hidden">
+          <h3><i class="fas fa-bell"></i> Quase pronto!</h3>
+          <p>Fique atento — você será chamado em breve.</p>
+        </div>
+      </div>
+      
+      <div id="your-details">
+        <div class="detail-row">
+          <span class="detail-label"><i class="fas fa-user"></i> Nome</span>
+          <span class="detail-value" id="confirm-name">--</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label"><i class="fas fa-hamburger"></i> Pedido</span>
+          <span class="detail-value" id="confirm-pedido">--</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label"><i class="fas fa-money-bill-wave"></i> Total</span>
+          <span class="detail-value" id="confirm-total">--</span>
+        </div>
+      </div>
+
+      <div class="whatsapp-alert">
+        <i class="fab fa-whatsapp"></i>
+        <div>
+          <strong>Pode fechar esta página</strong>
+          <span>Avisaremos você diretamente pelo WhatsApp assim que o seu pedido estiver pronto.</span>
+        </div>
+      </div>
+
+      <button id="btn-novo-pedido">
+        <i class="fas fa-redo"></i> Fazer Outro Pedido
+      </button>
+    </div>
+  </div>
+
+  <footer>
+    <p>Desenvolvido por Leonardo Goulart Lopes © 2026 — Sistema de Fila Virtual para Lancheria</p>
+  </footer>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "firebase/app": "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js",
+      "firebase/firestore": "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"
     }
-    </script>
-    <script type="module" src="join.js"></script>
-
-    <footer>
-        <p>Desenvolvido por Leonardo Goulart Lopes © 2026 — Sistema de Fila Virtual para Lancheria</p>
-    </footer>
+  }
+  </script>
+  <script type="module" src="join.js"></script>
 </body>
 </html>
