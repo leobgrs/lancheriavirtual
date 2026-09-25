@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ============================================================
     // 🚨 V4.1 — BANNER DE "SAIU DA ABA" COM BARRA DE PROGRESSO
     // ============================================================
-    const BANNER_DURATION = 5000; // 5 segundos
+    const BANNER_DURATION = 10000; // 5 segundos
     let awayBannerTimeout = null;
 
     const awayBanner = document.createElement('div');
