@@ -26,14 +26,132 @@ document.addEventListener('DOMContentLoaded', () => {
     const toastEl = document.getElementById('toast');
 
     // ============================================================
-    // 🔊 SISTEMA DE ÁUDIO BLINDADO — V3 (ANTI-SUSPENSÃO)
+    // 🚨 V4 — BANNER DE "SAIU DA ABA" (criado dinamicamente)
+    // ============================================================
+    const awayBanner = document.createElement('div');
+    awayBanner.id = 'away-banner';
+    awayBanner.innerHTML = `
+        <div class="away-banner-content">
+            <div class="away-banner-icon">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="away-banner-text">
+                <strong id="away-banner-title">⚠️ Você saiu do painel!</strong>
+                <span id="away-banner-subtitle">O alarme pode não funcionar em segundo plano. Volte para esta aba.</span>
+            </div>
+            <div class="away-banner-count hidden" id="away-banner-count">
+                <span id="away-banner-count-number">0</span>
+                <small>pedido(s)</small>
+            </div>
+        </div>
+    `;
+
+    // CSS do banner injetado dinamicamente
+    const awayBannerStyle = document.createElement('style');
+    awayBannerStyle.textContent = `
+        #away-banner {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 99999;
+            background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%);
+            color: #fff;
+            padding: 16px 24px;
+            font-family: 'Inter', sans-serif;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            transform: translateY(-100%);
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            justify-content: center;
+            pointer-events: none;
+        }
+        #away-banner.show { transform: translateY(0); pointer-events: auto; }
+        .away-banner-content {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            max-width: 900px;
+            width: 100%;
+        }
+        .away-banner-icon {
+            width: 48px; height: 48px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            animation: awayPulse 1.5s infinite;
+            flex-shrink: 0;
+            color: #fca5a5;
+        }
+        @keyframes awayPulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,255,255,0.5); }
+            50% { transform: scale(1.05); box-shadow: 0 0 0 12px rgba(255,255,255,0); }
+        }
+        .away-banner-text {
+            flex: 1;
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .away-banner-text strong {
+            font-size: 1rem;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+        }
+        .away-banner-text span {
+            font-size: 0.85rem;
+            opacity: 0.85;
+        }
+        .away-banner-count {
+            background: rgba(255,255,255,0.2);
+            padding: 8px 16px;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex-shrink: 0;
+            backdrop-filter: blur(10px);
+        }
+        .away-banner-count.hidden { display: none; }
+        .away-banner-count span {
+            font-family: 'Poppins', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 800;
+            line-height: 1;
+        }
+        .away-banner-count small {
+            font-size: 0.7rem;
+            opacity: 0.85;
+            margin-top: 2px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        @media (max-width: 600px) {
+            #away-banner { padding: 12px 16px; }
+            .away-banner-icon { width: 40px; height: 40px; font-size: 1.2rem; }
+            .away-banner-text strong { font-size: 0.9rem; }
+            .away-banner-text span { font-size: 0.75rem; }
+            .away-banner-count { padding: 6px 12px; }
+            .away-banner-count span { font-size: 1.2rem; }
+        }
+    `;
+    document.head.appendChild(awayBannerStyle);
+    document.body.appendChild(awayBanner);
+
+    // ============================================================
+    // 🔊 SISTEMA DE ÁUDIO BLINDADO — V4 (ANTI-SUSPENSÃO + ALERTA FORA)
     // ============================================================
     let audioCtx = null;
     let soundEnabled = false;
     let watchdogInterval = null;
-    let silentKeepAlive = null;      // oscilador silencioso que mantém o contexto vivo
-    let wakeLock = null;              // Wake Lock da tela (impede suspensão)
-    let pendingAlert = false;         // guarda alerta quando áudio estava suspenso
+    let silentKeepAlive = null;
+    let wakeLock = null;
+    let pendingAlert = false;
+    let isAway = false;                   // operador saiu da aba?
+    let pendingOrdersWhileAway = 0;       // pedidos que chegaram fora
 
     // ---------- TOAST ----------
     function showToast(message, type = 'info', duration = 4000) {
@@ -73,19 +191,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // ---------- OSCILADOR SILENCIOSO (mantém o áudio vivo em background) ----------
+    // ---------- OSCILADOR SILENCIOSO ----------
     function startSilentKeepAlive() {
         if (!audioCtx || silentKeepAlive) return;
         try {
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
-            gain.gain.value = 0;          // inaudível
-            osc.frequency.value = 20;      // abaixo do espectro audível
+            gain.gain.value = 0;
+            osc.frequency.value = 20;
             osc.connect(gain);
             gain.connect(audioCtx.destination);
             osc.start();
             silentKeepAlive = { osc, gain };
-            console.log('🔇 Oscilador silencioso iniciado (mantém áudio vivo)');
+            console.log('🔇 Oscilador silencioso iniciado');
         } catch (e) {
             console.warn('Erro ao criar oscilador silencioso:', e);
         }
@@ -103,10 +221,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // ---------- WAKE LOCK (impede a tela de apagar) ----------
+    // ---------- WAKE LOCK ----------
     async function requestWakeLock() {
         if (!('wakeLock' in navigator)) {
-            console.log('ℹ️ Wake Lock não suportado neste navegador');
+            console.log('ℹ️ Wake Lock não suportado');
             return;
         }
         try {
@@ -114,7 +232,7 @@ document.addEventListener('DOMContentLoaded', () => {
             wakeLock.addEventListener('release', () => {
                 console.log('🔓 Wake Lock liberado');
             });
-            console.log('🔒 Wake Lock ativo (tela não vai apagar)');
+            console.log('🔒 Wake Lock ativo');
         } catch (e) {
             console.warn('Erro ao adquirir Wake Lock:', e);
         }
@@ -131,21 +249,20 @@ document.addEventListener('DOMContentLoaded', () => {
     function playBeep(type = 'new') {
         if (!soundEnabled) return;
         if (!unlockAudio()) return;
-        
+
         if (audioCtx.state !== 'running') {
-            // Áudio suspenso: guarda o alerta para tocar quando retomar
             pendingAlert = true;
-            console.log('⚠️ Áudio suspenso — alerta guardado para tocar ao retomar');
+            console.log('⚠️ Áudio suspenso — alerta guardado');
             return;
         }
 
         const now = audioCtx.currentTime;
         let frequencies = [];
         let durations = [];
-        const gainValue = 0.5; // aumentei para ficar mais audível
+        const gainValue = 0.5;
 
         if (type === 'new') {
-            frequencies = [880, 1320, 880]; // 3 bipes (mais chamativo)
+            frequencies = [880, 1320, 880];
             durations = [0.15, 0.15, 0.25];
         } else if (type === 'call') {
             frequencies = [660, 880, 1100];
@@ -181,7 +298,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // ---------- ATUALIZAÇÃO VISUAL DA BARRA DE SOM ----------
+    // ---------- UI DA BARRA DE SOM ----------
     function updateSoundBarUI() {
         if (!soundControlBar) return;
 
@@ -218,7 +335,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // ---------- RETOMADA DE ÁUDIO (chamada em vários eventos) ----------
+    // ---------- RETOMADA DE ÁUDIO ----------
     async function tryResumeAudio() {
         if (!soundEnabled || !audioCtx) return;
         if (audioCtx.state === 'suspended') {
@@ -227,10 +344,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log('✅ Áudio retomado');
                 updateSoundBarUI();
 
-                // Se havia um alerta pendente, toca agora
                 if (pendingAlert) {
                     pendingAlert = false;
-                    console.log('🔔 Tocando alerta pendente (pedido chegou enquanto suspenso)');
+                    console.log('🔔 Tocando alerta pendente');
                     setTimeout(() => playBeep('new'), 200);
                 }
             } catch (e) {
@@ -244,7 +360,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const toggleSound = async () => {
             const ok = unlockAudio();
             if (!ok) {
-                showToast('O seu navegador não suporta áudio. Verifique as permissões do site.', 'error');
+                showToast('O seu navegador não suporta áudio.', 'error');
                 return;
             }
 
@@ -256,7 +372,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 playBeep('new');
                 updateSoundBarUI();
-                showToast('Alarme sonoro ativado! Mantenha esta aba visível.', 'success');
+                showToast('Alarme ativado! ⚠️ Mantenha esta aba SEMPRE visível.', 'success', 6000);
                 startSilentKeepAlive();
                 startWatchdog();
                 requestWakeLock();
@@ -278,7 +394,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ---------- WATCHDOG (verifica áudio a cada 10s) ----------
+    // ---------- WATCHDOG ----------
     function startWatchdog() {
         stopWatchdog();
         watchdogInterval = setInterval(async () => {
@@ -288,7 +404,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log('🐕 Watchdog: áudio suspenso, tentando retomar...');
                 await tryResumeAudio();
             } else if (audioCtx && audioCtx.state === 'running') {
-                // Toca um beep inaudível para manter o contexto "quente"
                 try {
                     const osc = audioCtx.createOscillator();
                     const gain = audioCtx.createGain();
@@ -311,7 +426,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ---------- RETOMADA EM MÚLTIPLOS EVENTOS ----------
-    // Qualquer interação do usuário tenta retomar o áudio silenciosamente
     ['click', 'keydown', 'touchstart', 'mousedown', 'pointerdown'].forEach(evt => {
         document.addEventListener(evt, () => {
             if (soundEnabled && audioCtx && audioCtx.state === 'suspended') {
@@ -320,29 +434,82 @@ document.addEventListener('DOMContentLoaded', () => {
         }, { passive: true });
     });
 
-    // Aba volta ao foco / fica visível
+    // ---------- DETECÇÃO DE SAÍDA / VOLTA À ABA (V4) ----------
     document.addEventListener('visibilitychange', () => {
-        if (!document.hidden) {
-            console.log('👁️ Aba voltou ao foco');
+        if (document.hidden) {
+            // Operador SAIU da aba
+            isAway = true;
+            console.log('👋 Operador saiu da aba');
+            if (soundEnabled) {
+                awayBanner.classList.add('show');
+            }
+        } else {
+            // Operador VOLTOU
+            isAway = false;
+            console.log('👁️ Operador voltou à aba');
+            awayBanner.classList.remove('show');
+
             tryResumeAudio();
-            // Reativa Wake Lock se ainda estiver habilitado
+
             if (soundEnabled && !wakeLock) {
                 requestWakeLock();
+            }
+
+            // Se chegaram pedidos enquanto estava fora, avisa
+            if (pendingOrdersWhileAway > 0) {
+                const count = pendingOrdersWhileAway;
+                pendingOrdersWhileAway = 0;
+
+                setTimeout(() => {
+                    showToast(
+                        `⚠️ ${count} pedido(s) chegaram enquanto você estava fora!`,
+                        'error',
+                        8000
+                    );
+                    setTimeout(() => playBeep('new'), 300);
+                }, 400);
+
+                // Esconde o contador do banner
+                const countEl = document.getElementById('away-banner-count');
+                if (countEl) countEl.classList.add('hidden');
             }
         }
     });
 
-    // Janela ganha foco (alt+tab, clica de volta, etc)
     window.addEventListener('focus', () => {
         console.log('🪟 Janela ganhou foco');
         tryResumeAudio();
     });
 
-    // Estado inicial da barra
+    // Função que incrementa pedidos enquanto o operador está fora
+    function incrementAwayOrders() {
+        pendingOrdersWhileAway++;
+        const countEl = document.getElementById('away-banner-count');
+        const numberEl = document.getElementById('away-banner-count-number');
+
+        if (countEl && numberEl) {
+            numberEl.textContent = pendingOrdersWhileAway;
+            countEl.classList.remove('hidden');
+        }
+
+        // Se o operador está fora E o áudio ainda está ativo, tenta tocar
+        if (isAway && soundEnabled) {
+            try {
+                if (audioCtx && audioCtx.state === 'running') {
+                    playBeep('new');
+                    console.log('🔔 Bipe tocado mesmo com operador fora da aba!');
+                } else {
+                    console.log('⚠️ Áudio suspenso — pedido será notificado ao voltar');
+                }
+            } catch (e) {}
+        }
+    }
+
+    // Estado inicial
     updateSoundBarUI();
 
     // ============================================================
-    // FIM DO SISTEMA DE ÁUDIO V3
+    // FIM DO SISTEMA DE ÁUDIO V4
     // ============================================================
 
 
@@ -412,7 +579,6 @@ document.addEventListener('DOMContentLoaded', () => {
             queueList.appendChild(li);
         });
 
-        // Botões de paginação
         if (totalPages > 1 && paginationControls) {
             const btnPrev = document.createElement('button');
             btnPrev.className = 'page-btn';
@@ -518,6 +684,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     showToast(`🔔 ${newCount} novo(s) pedido(s) na fila! (Som desligado)`, 'warning', 6000);
                 }
+
+                // V4: se o operador está fora da aba, conta no banner
+                if (isAway) {
+                    incrementAwayOrders();
+                }
             }
         }
 
@@ -587,7 +758,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ============================================================
-    // CHAMAR PRÓXIMO (WhatsApp + move para histórico)
+    // CHAMAR PRÓXIMO
     // ============================================================
     if (callNextBtn) {
         callNextBtn.addEventListener('click', async () => {
