@@ -3,6 +3,9 @@ import { db } from './firebase-config.js';
 import { collection, addDoc, onSnapshot, query, orderBy, limit, getDocs, deleteDoc, serverTimestamp, doc } from "firebase/firestore";
 
 document.addEventListener('DOMContentLoaded', () => {
+    // ============================================================
+    // REFERÊNCIAS DOM
+    // ============================================================
     const queueList = document.getElementById('queue-list');
     const historyList = document.getElementById('history-list');
     const addForm = document.getElementById('add-form');
@@ -17,16 +20,41 @@ document.addEventListener('DOMContentLoaded', () => {
     const statTotalAtendidos = document.getElementById('stat-total-atendidos');
     const statTopLanche = document.getElementById('stat-top-lanche');
 
+    const soundControlBar = document.getElementById('sound-control-bar');
+    const soundIcon = document.getElementById('sound-icon');
+    const soundText = document.getElementById('sound-text');
+    const toastEl = document.getElementById('toast');
+
     // ============================================================
     // 🔊 SISTEMA DE ÁUDIO BLINDADO COM WEB AUDIO API
     // ============================================================
     let audioCtx = null;
     let soundEnabled = false;
-    const soundControlBar = document.getElementById('sound-control-bar');
-    const soundIcon = document.getElementById('sound-icon');
-    const soundText = document.getElementById('sound-text');
+    let watchdogInterval = null;
 
-    // Inicializa/desbloqueia o AudioContext numa interação do usuário
+    // ---------- TOAST ----------
+    function showToast(message, type = 'info', duration = 4000) {
+        if (!toastEl) return;
+        toastEl.className = '';
+        toastEl.classList.add('show');
+        if (type === 'warning') toastEl.classList.add('warning-toast');
+        if (type === 'error') toastEl.classList.add('error-toast');
+        if (type === 'success') toastEl.classList.add('success-toast');
+
+        let icon = 'fa-info-circle';
+        if (type === 'warning') icon = 'fa-exclamation-triangle';
+        if (type === 'error') icon = 'fa-times-circle';
+        if (type === 'success') icon = 'fa-check-circle';
+
+        toastEl.innerHTML = `<i class="fas ${icon}"></i> <span>${message}</span>`;
+
+        clearTimeout(toastEl._timeout);
+        toastEl._timeout = setTimeout(() => {
+            toastEl.classList.remove('show');
+        }, duration);
+    }
+
+    // ---------- INICIALIZAÇÃO DO AudioContext ----------
     function unlockAudio() {
         try {
             if (!audioCtx) {
@@ -42,29 +70,24 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Toca uma sequência de bipes (padrão profissional de notificação)
-    // type: 'new' (novo pedido), 'call' (chamada), 'remove' (remoção)
+    // ---------- GERAÇÃO DE BIPES ----------
     function playBeep(type = 'new') {
         if (!soundEnabled) return;
         if (!unlockAudio()) return;
+        if (audioCtx.state !== 'running') return;
 
         const now = audioCtx.currentTime;
-
-        // Configuração de frequências por tipo
         let frequencies = [];
         let durations = [];
-        let gainValue = 0.4;
+        const gainValue = 0.4;
 
         if (type === 'new') {
-            // Dois bipes curtos e agudos (novo pedido)
             frequencies = [880, 1320];
             durations = [0.15, 0.2];
         } else if (type === 'call') {
-            // Três bipes (chamada)
             frequencies = [660, 880, 1100];
             durations = [0.12, 0.12, 0.25];
         } else if (type === 'remove') {
-            // Um bipe descendente (remoção)
             frequencies = [600, 400];
             durations = [0.1, 0.15];
         }
@@ -77,7 +100,6 @@ document.addEventListener('DOMContentLoaded', () => {
             osc.type = 'sine';
             osc.frequency.setValueAtTime(freq, startTime);
 
-            // Envelope para evitar cliques
             gain.gain.setValueAtTime(0, startTime);
             gain.gain.linearRampToValueAtTime(gainValue, startTime + 0.01);
             gain.gain.exponentialRampToValueAtTime(0.0001, startTime + durations[i]);
@@ -91,64 +113,156 @@ document.addEventListener('DOMContentLoaded', () => {
             startTime += durations[i] + 0.05;
         });
 
-        // Vibração no celular (se suportado)
         if (navigator.vibrate) {
             navigator.vibrate(type === 'new' ? [100, 50, 100] : [80, 40, 80]);
         }
     }
 
-    // Toggle do som
+    // ---------- ATUALIZAÇÃO VISUAL DA BARRA DE SOM ----------
+    function updateSoundBarUI() {
+        if (!soundControlBar) return;
+
+        if (!soundEnabled) {
+            soundControlBar.classList.add('warning');
+            soundControlBar.style.background = '#7f1d1d';
+            soundControlBar.style.color = '#fecaca';
+            if (soundIcon) {
+                soundIcon.className = 'fas fa-volume-mute';
+                soundIcon.style.color = '#fca5a5';
+            }
+            if (soundText) soundText.textContent = '🔕 ALARME DESATIVADO — CLIQUE AQUI PARA ATIVAR';
+            return;
+        }
+
+        if (audioCtx && audioCtx.state === 'running') {
+            soundControlBar.classList.remove('warning');
+            soundControlBar.style.background = '#d4edda';
+            soundControlBar.style.color = '#155724';
+            if (soundIcon) {
+                soundIcon.className = 'fas fa-volume-up';
+                soundIcon.style.color = '#1cc88a';
+            }
+            if (soundText) soundText.textContent = '🔔 ALARME ATIVO — Sistema a funcionar normalmente';
+        } else {
+            soundControlBar.classList.add('warning');
+            soundControlBar.style.background = '#78350f';
+            soundControlBar.style.color = '#fde68a';
+            if (soundIcon) {
+                soundIcon.className = 'fas fa-exclamation-triangle';
+                soundIcon.style.color = '#fbbf24';
+            }
+            if (soundText) soundText.textContent = '⚠️ ÁUDIO SUSPENSO PELO NAVEGADOR — CLIQUE PARA REATIVAR';
+        }
+    }
+
+    // ---------- TOGGLE DO SOM ----------
     if (soundControlBar) {
-        soundControlBar.addEventListener('click', () => {
+        const toggleSound = () => {
             const ok = unlockAudio();
             if (!ok) {
-                alert('O seu navegador não suporta áudio. Verifique as permissões do site.');
+                showToast('O seu navegador não suporta áudio. Verifique as permissões do site.', 'error');
                 return;
             }
 
             soundEnabled = !soundEnabled;
 
             if (soundEnabled) {
-                // Testa o som imediatamente para "desbloquear" de vez
-                playBeep('new');
-                
-                soundControlBar.style.background = '#d4edda';
-                soundControlBar.style.color = '#155724';
-                soundIcon.className = 'fas fa-volume-up';
-                soundIcon.style.color = '#1cc88a';
-                soundText.textContent = '🔔 Alarme Sonoro ATIVO (Clique para desativar)';
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume().then(() => {
+                        playBeep('new');
+                        updateSoundBarUI();
+                        showToast('Alarme sonoro ativado com sucesso!', 'success');
+                    });
+                } else {
+                    playBeep('new');
+                    updateSoundBarUI();
+                    showToast('Alarme sonoro ativado com sucesso!', 'success');
+                }
+                startWatchdog();
             } else {
-                soundControlBar.style.background = '#e4e6eb';
-                soundControlBar.style.color = '#4b4f56';
-                soundIcon.className = 'fas fa-volume-mute';
-                soundIcon.style.color = '#e74a3b';
-                soundText.textContent = '🔕 Alarme Sonoro DESATIVADO (Clique para ativar)';
+                stopWatchdog();
+                updateSoundBarUI();
+                showToast('Alarme sonoro desativado.', 'warning', 2500);
+            }
+        };
+
+        soundControlBar.addEventListener('click', toggleSound);
+        soundControlBar.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                toggleSound();
             }
         });
     }
 
-    // Mantém o AudioContext vivo quando a aba volta ao foco
+    // ---------- WATCHDOG (verifica áudio a cada 5s) ----------
+    function startWatchdog() {
+        stopWatchdog();
+        watchdogInterval = setInterval(() => {
+            if (!soundEnabled) return;
+
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume().then(() => {
+                    console.log('🔊 AudioContext reativado automaticamente pelo watchdog');
+                    updateSoundBarUI();
+                }).catch(() => {
+                    updateSoundBarUI();
+                });
+            } else {
+                updateSoundBarUI();
+            }
+        }, 5000);
+    }
+
+    function stopWatchdog() {
+        if (watchdogInterval) {
+            clearInterval(watchdogInterval);
+            watchdogInterval = null;
+        }
+    }
+
+    // ---------- RETOMA ÁUDIO AO VOLTAR O FOCO ----------
     document.addEventListener('visibilitychange', () => {
-        if (!document.hidden && soundEnabled && audioCtx && audioCtx.state === 'suspended') {
-            audioCtx.resume();
+        if (!document.hidden && soundEnabled && audioCtx) {
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume().then(() => {
+                    console.log('🔊 AudioContext retomado após voltar ao foco');
+                    updateSoundBarUI();
+                }).catch(() => updateSoundBarUI());
+            } else {
+                updateSoundBarUI();
+            }
         }
     });
+
+    // Estado inicial da barra
+    updateSoundBarUI();
 
     // ============================================================
     // FIM DO SISTEMA DE ÁUDIO
     // ============================================================
 
+
+    // ============================================================
+    // FIREBASE — REFERÊNCIAS
+    // ============================================================
     const queueCollection = collection(db, "queue");
     const historyCollection = collection(db, "history");
 
+    // ============================================================
+    // PAGINAÇÃO
+    // ============================================================
     let currentPage = 1;
     const itemsPerPage = 10;
     let allPeople = [];
 
+    // ============================================================
+    // RENDERIZAÇÃO DA FILA
+    // ============================================================
     const renderQueue = (people) => {
         allPeople = people;
         if (!queueList) return;
-        
+
         queueList.innerHTML = '';
         const paginationControls = document.getElementById('pagination-controls');
         if (paginationControls) paginationControls.innerHTML = '';
@@ -158,20 +272,20 @@ document.addEventListener('DOMContentLoaded', () => {
         if (people.length === 0) {
             if (emptyQueueMessage) emptyQueueMessage.style.display = 'block';
             return;
-        } 
-        
+        }
+
         if (emptyQueueMessage) emptyQueueMessage.style.display = 'none';
 
         const totalPages = Math.ceil(people.length / itemsPerPage);
-        if (currentPage > totalPages) currentPage = totalPages || 1; 
+        if (currentPage > totalPages) currentPage = totalPages || 1;
 
         const startIndex = (currentPage - 1) * itemsPerPage;
         const endIndex = startIndex + itemsPerPage;
         const paginatedPeople = people.slice(startIndex, endIndex);
 
         paginatedPeople.forEach((person, index) => {
-            const actualPosition = startIndex + index + 1; 
-            
+            const actualPosition = startIndex + index + 1;
+
             const li = document.createElement('li');
             li.className = 'queue-item';
             li.dataset.id = person.id;
@@ -195,6 +309,7 @@ document.addEventListener('DOMContentLoaded', () => {
             queueList.appendChild(li);
         });
 
+        // Botões de paginação
         if (totalPages > 1 && paginationControls) {
             const btnPrev = document.createElement('button');
             btnPrev.className = 'page-btn';
@@ -220,6 +335,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    // ============================================================
+    // RENDERIZAÇÃO DO HISTÓRICO + ESTATÍSTICAS
+    // ============================================================
     const renderHistory = (historyDocs) => {
         if (!historyList) return;
         historyList.innerHTML = '';
@@ -272,33 +390,33 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // ============================================================
-    // ESCUTA EM TEMPO REAL DO FIREBASE COM DETECÇÃO DE NOVOS PEDIDOS
+    // ESCUTA EM TEMPO REAL DO FIREBASE
     // ============================================================
     let isInitialLoad = true;
-    // Guardamos os IDs conhecidos para comparar. MUITO mais confiável que docChanges()
-    // porque docChanges() pode se perder se a conexão oscilar.
     let knownIds = new Set();
 
     const qQueue = query(queueCollection, orderBy("timestamp", "asc"));
-    
+
     onSnapshot(qQueue, (snapshot) => {
         const people = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         const currentIds = new Set(people.map(p => p.id));
 
-        // Detecta IDs que apareceram agora e não estavam antes
         if (!isInitialLoad) {
-            let hasNew = false;
+            let newCount = 0;
             currentIds.forEach(id => {
-                if (!knownIds.has(id)) hasNew = true;
+                if (!knownIds.has(id)) newCount++;
             });
 
-            if (hasNew && soundEnabled) {
-                console.log('🔔 Novo pedido detectado — tocando alarme');
-                playBeep('new');
+            if (newCount > 0) {
+                if (soundEnabled) {
+                    console.log('🔔 Novo pedido detectado — tocando alarme');
+                    playBeep('new');
+                } else {
+                    showToast(`🔔 ${newCount} novo(s) pedido(s) na fila! (Som desligado)`, 'warning', 6000);
+                }
             }
         }
 
-        // Atualiza o conjunto de IDs conhecidos
         knownIds = currentIds;
         renderQueue(people);
         isInitialLoad = false;
@@ -310,6 +428,9 @@ document.addEventListener('DOMContentLoaded', () => {
         renderHistory(history);
     });
 
+    // ============================================================
+    // ADICIONAR PESSOA MANUALMENTE
+    // ============================================================
     const addPerson = async (name, whatsapp, lanche, bebida) => {
         if (name && whatsapp) {
             try {
@@ -322,7 +443,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             } catch (error) {
                 console.error("Erro ao adicionar:", error);
-                alert("Ocorreu um erro ao adicionar à fila.");
+                showToast('Erro ao adicionar à fila.', 'error');
             }
         }
     };
@@ -331,15 +452,18 @@ document.addEventListener('DOMContentLoaded', () => {
         addForm.addEventListener('submit', (e) => {
             e.preventDefault();
             addPerson(
-                nameInput.value.trim(), 
-                whatsappInput.value.trim(), 
-                lancheInput ? lancheInput.value : 'X-Burger', 
+                nameInput.value.trim(),
+                whatsappInput.value.trim(),
+                lancheInput ? lancheInput.value : 'X-Burger',
                 bebidaInput ? bebidaInput.value : 'Sem bebida'
             );
             addForm.reset();
         });
     }
 
+    // ============================================================
+    // REMOVER DA FILA
+    // ============================================================
     if (queueList) {
         queueList.addEventListener('click', (e) => {
             const removeButton = e.target.closest('.btn-remove');
@@ -351,12 +475,16 @@ document.addEventListener('DOMContentLoaded', () => {
                         playBeep('remove');
                     }).catch(error => {
                         console.error("Erro ao remover:", error);
+                        showToast('Erro ao remover o pedido.', 'error');
                     });
                 }
             }
         });
     }
 
+    // ============================================================
+    // CHAMAR PRÓXIMO (WhatsApp + move para histórico)
+    // ============================================================
     if (callNextBtn) {
         callNextBtn.addEventListener('click', async () => {
             const asArray = Array.from(queueList.children);
@@ -371,19 +499,19 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!snapshot.empty) {
                 const nextPersonDoc = snapshot.docs[0];
                 const person = { id: nextPersonDoc.id, ...nextPersonDoc.data() };
-                
+
                 const numeroLimpo = person.whatsapp.replace(/\D/g, '');
                 const lancheDesc = person.lanche || 'Lanche';
                 const bebidaDesc = person.bebida || '';
                 const mensagem = `Olá ${person.name}, o seu pedido (${lancheDesc} + ${bebidaDesc}) na Lancheria está pronto! Por favor, dirija-se ao balcão para retirada. Bom apetite! 🍔🥤`;
-                
+
                 const whatsappUrl = `https://wa.me/${numeroLimpo}?text=${encodeURIComponent(mensagem)}`;
-                
+
                 window.open(whatsappUrl, '_blank');
                 playBeep('call');
 
                 const listItem = queueList.querySelector(`[data-id="${person.id}"]`);
-                if(listItem) {
+                if (listItem) {
                     listItem.classList.add('calling');
                 }
 
@@ -399,17 +527,21 @@ document.addEventListener('DOMContentLoaded', () => {
                         await deleteDoc(doc(db, "queue", person.id));
                     } catch (error) {
                         console.error("Erro ao mover para o histórico:", error);
+                        showToast('Erro ao mover para o histórico.', 'error');
                     }
                 }, 2000);
             }
         });
     }
 
+    // ============================================================
+    // GERAR QR CODE
+    // ============================================================
     const generateQRCode = () => {
         if (!qrcodeContainer) return;
         const currentUrl = window.location.href.split('?')[0];
         const joinUrl = currentUrl.replace('index.html', '').replace(/\/$/, '') + '/join.html';
-        
+
         QRCodeLib.toCanvas(document.createElement('canvas'), joinUrl, { width: 256, errorCorrectionLevel: 'H' }, (err, canvas) => {
             if (err) throw err;
             qrcodeContainer.innerHTML = '';
