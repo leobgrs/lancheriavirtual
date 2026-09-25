@@ -74,8 +74,6 @@ document.addEventListener('DOMContentLoaded', () => {
         #away-banner.show:hover {
             filter: brightness(1.1);
         }
-
-        /* Estado URGENTE — quando há pedidos novos */
         #away-banner.has-orders {
             background: linear-gradient(135deg, #450a0a 0%, #7f1d1d 50%, #991b1b 100%);
             animation: bannerFlashUrgent 1.2s ease-in-out infinite;
@@ -84,7 +82,6 @@ document.addEventListener('DOMContentLoaded', () => {
             background: rgba(255, 255, 255, 0.28);
             color: #fbbf24;
         }
-
         @keyframes bannerFlash {
             0%, 100% { box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), inset 0 0 0 0 rgba(255,255,255,0); }
             50% { box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), inset 0 0 80px 0 rgba(255,255,255,0.08); }
@@ -93,7 +90,6 @@ document.addEventListener('DOMContentLoaded', () => {
             0%, 100% { box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), inset 0 0 0 0 rgba(239, 68, 68, 0); }
             50% { box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), inset 0 0 100px 0 rgba(239, 68, 68, 0.15); }
         }
-
         .away-banner-content {
             display: flex;
             align-items: center;
@@ -167,7 +163,6 @@ document.addEventListener('DOMContentLoaded', () => {
             text-transform: uppercase;
             letter-spacing: 0.06em;
         }
-
         @media (max-width: 600px) {
             #away-banner { padding: 14px 16px; }
             .away-banner-icon { width: 44px; height: 44px; font-size: 1.3rem; }
@@ -180,7 +175,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.head.appendChild(awayBannerStyle);
     document.body.appendChild(awayBanner);
 
-    // 🔧 ÚNICO lugar que esconde o banner: clique do operador
     awayBanner.addEventListener('click', () => {
         console.log('👆 Banner fechado pelo clique');
         awayBanner.classList.remove('show');
@@ -193,7 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ============================================================
-    // 🔊 SISTEMA DE ÁUDIO BLINDADO — V5.1
+    // 🔊 SISTEMA DE ÁUDIO BLINDADO — V6
     // ============================================================
     let audioCtx = null;
     let soundEnabled = false;
@@ -203,6 +197,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let pendingAlert = false;
     let isAway = false;
     let pendingOrdersWhileAway = 0;
+    let isCallingNext = false;  // 🔒 trava para o botão "Chamar Próximo"
 
     // ---------- TOAST ----------
     function showToast(message, type = 'info', duration = 4000) {
@@ -490,13 +485,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // ============================================================
     document.addEventListener('visibilitychange', () => {
         if (document.hidden) {
-            // ===== OPERADOR SAIU DA ABA =====
             isAway = true;
             console.log('👋 Operador saiu da aba');
-            // Não mostra o banner agora — só quando voltar
 
         } else {
-            // ===== OPERADOR VOLTOU À ABA =====
             isAway = false;
             console.log('👁️ Operador voltou à aba');
 
@@ -515,7 +507,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const hasNewOrders = pendingOrdersWhileAway > 0;
 
             if (hasNewOrders) {
-                // ===== CASO A: Chegaram pedidos enquanto estava fora =====
                 const count = pendingOrdersWhileAway;
                 console.log(`📦 Voltou com ${count} pedido(s) novo(s)`);
 
@@ -536,7 +527,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 awayBanner.classList.add('has-orders');
 
             } else {
-                // ===== CASO B: Nenhum pedido novo — só aviso de saída =====
                 console.log('ℹ️ Voltou sem pedidos novos');
 
                 if (titleEl) titleEl.textContent = '⚠️ Você saiu do painel!';
@@ -549,7 +539,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 awayBanner.classList.remove('has-orders');
             }
 
-            // 🔧 ZERA sempre o contador
             pendingOrdersWhileAway = 0;
 
             awayBanner.classList.remove('show');
@@ -594,7 +583,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateSoundBarUI();
 
     // ============================================================
-    // FIM DO SISTEMA DE ÁUDIO V5.1
+    // FIM DO SISTEMA DE ÁUDIO V6
     // ============================================================
 
 
@@ -842,37 +831,38 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ============================================================
-    // CHAMAR PRÓXIMO
+    // CHAMAR PRÓXIMO — V6 (com trava + auto-página 1)
     // ============================================================
     if (callNextBtn) {
         callNextBtn.addEventListener('click', async () => {
-            const asArray = Array.from(queueList.children);
-            if (asArray.length === 0) {
-                alert("A fila está vazia.");
+            // 🔒 Trava para impedir duplo disparo
+            if (isCallingNext) {
+                console.log('⏳ Já existe um "Chamar Próximo" em andamento — ignorando clique');
                 return;
             }
+            isCallingNext = true;
+            callNextBtn.disabled = true;
 
-            const firstInQueueQuery = query(queueCollection, orderBy("timestamp", "asc"), limit(1));
-            const snapshot = await getDocs(firstInQueueQuery);
-
-            if (!snapshot.empty) {
-                const nextPersonDoc = snapshot.docs[0];
-                const person = { id: nextPersonDoc.id, ...nextPersonDoc.data() };
-
-                const numeroLimpo = person.whatsapp.replace(/\D/g, '');
-                const lancheDesc = person.lanche || 'Lanche';
-                const bebidaDesc = person.bebida || '';
-                const mensagem = `Olá ${person.name}, o seu pedido (${lancheDesc} + ${bebidaDesc}) na Lancheria está pronto! Por favor, dirija-se ao balcão para retirada. Bom apetite! 🍔🥤`;
-
-                const whatsappUrl = `https://wa.me/${numeroLimpo}?text=${encodeURIComponent(mensagem)}`;
-
-                window.open(whatsappUrl, '_blank');
-                playBeep('call');
-
-                const listItem = queueList.querySelector(`[data-id="${person.id}"]`);
-                if (listItem) {
-                    listItem.classList.add('calling');
+            try {
+                const asArray = Array.from(queueList.children);
+                if (asArray.length === 0 && allPeople.length === 0) {
+                    alert("A fila está vazia.");
+                    return;
                 }
 
-                setTimeout(async () => {
-                   
+                // 🔧 SEMPRE pega o primeiro da fila GLOBAL (não da página)
+                console.log('📢 Chamando próximo da fila...');
+                const firstInQueueQuery = query(queueCollection, orderBy("timestamp", "asc"), limit(1));
+                const snapshot = await getDocs(firstInQueueQuery);
+
+                if (snapshot.empty) {
+                    console.log('❌ Fila vazia no Firestore');
+                    alert("A fila está vazia.");
+                    return;
+                }
+
+                const nextPersonDoc = snapshot.docs[0];
+                const person = { id: nextPersonDoc.id, ...nextPersonDoc.data() };
+                console.log('👤 Chamando:', person.name, '| Pedido:', person.lanche, '+', person.bebida);
+
+                // 🔧 Força voltar para a página 1 para
