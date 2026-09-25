@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fazer Pedido - Lancheria</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            /* Paleta Moderna (Warm/Food Tech) igual ao Painel */
+            --primary: #ff5e2c;
+            --primary-dark: #e04b1f;
+            --primary-gradient: linear-gradient(135deg, #ff5e2c 0%, #ff2a5f 100%);
+            
+            --success: #10b981;
+            --success-light: #d1fae5;
+            --success-dark: #065f46;
+            
+            --warning: #f59e0b;
+            --warning-light: #fef3c7;
+            --warning-dark: #92400e;
+            
+            --bg-color: #f1f5f9;
+            --card-bg: #ffffff;
+            --text-color: #64748b;
+            --heading-color: #0f172a;
+            --border-color: #e2e8f0;
+            
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+            
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            align-items: center;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container.join-layout {
+            width: 100%;
+            max-width: 480px;
+            margin: 40px auto;
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        header {
+            background: var(--primary-gradient);
+            color: #fff;
+            padding: 24px;
+            text-align: center;
+            box-shadow: var(--shadow-md);
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        #join-section, #success-section {
+            padding: 30px;
+            animation: fadeIn 0.4s ease forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        #join-section p {
+            margin-top: 0;
+            font-size: 0.95rem;
+            text-align: center;
+            margin-bottom: 25px;
+            color: var(--text-color);
+        }
+
+        /* Formulário e Inputs */
+        form input, form select {
+            width: 100%;
+            padding: 14px 16px;
+            margin: 8px 0 20px 0;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-color);
+            background: #f8fafc;
+            color: var(--heading-color);
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+        }
+
+        /* Adiciona a setinha no select */
+        form select {
+            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2364748b%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+            background-repeat: no-repeat;
+            background-position: right 16px top 50%;
+            background-size: 12px auto;
+        }
+
+        form input:focus, form select:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: #ffffff;
+            box-shadow: 0 0 0 3px rgba(255, 94, 44, 0.15);
+        }
+
+        form label {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--heading-color);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Botões */
+        button {
+            width: 100%;
+            background: var(--primary);
+            color: white;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            border: none;
+            cursor: pointer;
+            border-radius: var(--radius-sm);
+            padding: 16px;
+            font-size: 1rem;
+            font-family: 'Poppins', sans-serif;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 5px;
+        }
+
+        button:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(224, 75, 31, 0.25);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        /* Tela de Sucesso */
+        .hidden {
+            display: none !important;
+        }
+
+        #success-section {
+            text-align: center;
+        }
+
+        #success-section h2 {
+            color: var(--success);
+            margin-top: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-size: 1.6rem;
+            letter-spacing: -0.5px;
+        }
+
+        #status-display {
+            background: #f8fafc;
+            padding: 25px 20px;
+            border-radius: var(--radius-md);
+            margin: 20px 0;
+            border: 1px solid var(--border-color);
+        }
+
+        #status-display p {
+            margin: 0;
+            font-weight: 500;
+            color: var(--text-color);
+        }
+
+        #position-number {
+            font-size: 4rem;
+            font-weight: 700;
+            color: var(--primary);
+            line-height: 1.1;
+            margin: 10px 0;
+            letter-spacing: -2px;
+        }
+
+        #people-ahead {
+            font-size: 0.95rem;
+            color: var(--heading-color);
+            font-weight: 600;
+        }
+
+        /* Alerta de "Quase Pronto" animado */
+        #turn-alert {
+            background: var(--warning-light);
+            color: var(--warning-dark);
+            padding: 15px;
+            border-radius: var(--radius-sm);
+            margin-top: 20px;
+            border: 1px solid #fde68a;
+            animation: pulseWarning 2s infinite;
+        }
+
+        @keyframes pulseWarning {
+            0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(245, 158, 11, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+        }
+
+        #turn-alert h3 {
+            margin: 0 0 5px 0;
+            font-size: 1.05rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        #turn-alert p {
+            margin: 0;
+            font-size: 0.9rem;
+            color: var(--warning-dark);
+        }
+
+        /* Detalhes do Pedido */
+        #your-details {
+            text-align: left;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+            margin-bottom: 20px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        #your-details p {
+            margin: 8px 0;
+            color: var(--heading-color);
+            font-size: 0.95rem;
+        }
+
+        #your-details p strong {
+            color: var(--text-color);
+            margin-right: 5px;
+        }
+
+        /* Alerta do WhatsApp */
+        .whatsapp-alert {
+            background: var(--success-light);
+            color: var(--success-dark);
+            padding: 16px;
+            border-radius: var(--radius-md);
+            margin-bottom: 20px;
+            font-size: 0.95rem;
+            text-align: left;
+            display: flex;
+            gap: 15px;
+            align-items: flex-start;
+            border: 1px solid #a7f3d0;
+            line-height: 1.5;
+        }
+
+        .whatsapp-alert i {
+            font-size: 1.6rem;
+            margin-top: 2px;
+            color: var(--success);
+        }
+
+        #btn-novo-pedido {
+            background: #64748b;
+        }
+
+        #btn-novo-pedido:hover {
+            background: #475569;
+            box-shadow: 0 4px 12px rgba(100, 116, 139, 0.25);
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            font-size: 0.85rem;
+            color: #94a3b8;
+            width: 100%;
+            font-weight: 500;
+        }
+
+        /* Tema Escuro (Dark Mode) Nativo para Celulares */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #0f172a;
+                --card-bg: #1e293b;
+                --text-color: #94a3b8;
+                --heading-color: #f8fafc;
+                --border-color: #334155;
+            }
+            
+            .container.join-layout { border: 1px solid #334155; }
+            
+            form input, form select { 
+                background: #0f172a; 
+                color: #f8fafc; 
+            }
+            
+            #status-display { 
+                background: #0f172a; 
+                border-color: #334155; 
+            }
+            
+            #your-details { 
+                background: #0f172a; 
+                border-color: #334155; 
+            }
+            
+            .whatsapp-alert { 
+                background: rgba(16, 185, 129, 0.1); 
+                border-color: rgba(16, 185, 129, 0.2); 
+                color: #34d399; 
+            }
+            
+            #turn-alert { 
+                background: rgba(245, 158, 11, 0.1); 
+                border-color: rgba(245, 158, 11, 0.2); 
+                color: #fbbf24; 
+            }
+            
+            #turn-alert p { color: #fcd34d; }
+        }
+
+        @media (max-width: 600px) {
+            .container.join-layout {
+                margin: 20px;
+                width: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container join-layout">
+        <header>
+            <h1><i class="fas fa-utensils"></i> Fazer Pedido</h1>
+        </header>
+        
+        <div id="join-section">
+            <p>Preencha os dados e escolha o seu pedido para entrar na fila.</p>
+            <form id="join-form" class="join-form">
+                
+                <input type="text" id="join-name" placeholder="Seu Nome Completo" required>
+                <input type="tel" id="join-whatsapp" placeholder="Seu Nº WhatsApp (Ex: 55539...)" required>
+                
+                <!-- Escolha do Lanche -->
+                <label for="join-lanche"><i class="fas fa-hamburger"></i> Escolha o Lanche:</label>
+                <select id="join-lanche" required>
+                    <option value="" disabled selected>Selecione o lanche...</option>
+                    <option value="X-Burger">X-Burger</option>
+                    <option value="X-Salada">X-Salada</option>
+                    <option value="X-Bacon">X-Bacon</option>
+                    <option value="X-Tudo">X-Tudo</option>
+                </select>
+
+                <!-- Escolha da Bebida -->
+                <label for="join-bebida"><i class="fas fa-cocktail"></i> Escolha a Bebida:</label>
+                <select id="join-bebida" required>
+                    <option value="" disabled selected>Selecione a bebida...</option>
+                    <option value="Coca-Cola Lata">Coca-Cola Lata</option>
+                    <option value="Guaraná Lata">Guaraná Lata</option>
+                    <option value="Água Mineral">Água Mineral</option>
+                    <option value="Sumo Natural">Sumo Natural</option>
+                    <option value="Sem Bebida">Apenas o lanche</option>
+                </select>
+
+                <button type="submit" id="submit-btn"><i class="fas fa-arrow-right"></i> Enviar Pedido</button>
+            </form>
+        </div>
+
+        <div id="success-section" class="hidden">
+            <h2><i class="fas fa-check-circle"></i> Pedido Realizado!</h2>
+            
+            <div id="status-display">
+                <p>Sua posição na fila:</p>
+                <div id="position-number">--</div>
+                <p id="people-ahead">Aguardando...</p>
+                
+                <div id="turn-alert" class="hidden">
+                     <h3><i class="fas fa-bell"></i> O seu pedido está quase pronto!</h3>
+                     <p>Fique atento, já vai ser chamado para retirada.</p>
+                </div>
+            </div>
+            
+            <div id="your-details">
+                <p><strong>Nome:</strong> <span id="confirm-name"></span></p>
+                <p><strong>Pedido:</strong> <span id="confirm-pedido"></span></p>
+            </div>
+
+            <!-- Aviso amigável direcionando para o WhatsApp -->
+            <div class="whatsapp-alert">
+                <i class="fab fa-whatsapp"></i>
+                <div>
+                    <strong>Pode fechar esta página!</strong><br>
+                    Avisaremos você diretamente pelo WhatsApp assim que o seu pedido estiver pronto.
+                </div>
+            </div>
+
+            <!-- Botão para refazer o pedido se necessário -->
+            <button id="btn-novo-pedido" class="btn">
+                <i class="fas fa-redo"></i> Fazer Outro Pedido
+            </button>
+        </div>
+    </div>
+    
+    <audio id="add-sound" src="add_sound.mp3"></audio>
+    <audio id="alert-sound" src="alert_sound.mp3"></audio>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "firebase/app": "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js",
+            "firebase/firestore": "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"
+        }
+    }
+    </script>
+    <script type="module" src="join.js"></script>
+
+    <footer>
+        <p>Desenvolvido por Leonardo Goulart Lopes © 2026 — Sistema de Fila Virtual para Lancheria</p>
+    </footer>
+</body>
+</html>

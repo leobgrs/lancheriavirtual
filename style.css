@@ -1,0 +1,421 @@
+:root {
+    --primary-color: #075E54;
+    --secondary-color: #128C7E;
+    --accent-color: #25D366;
+    --background-color: #ECE5DD;
+    --text-color: #333;
+    --white: #fff;
+    --light-gray: #f4f4f4;
+    --gray: #ccc;
+    --red: #e74c3c;
+    --blue: #3498db;
+    --yellow: #f1c40f;
+    --shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    margin: 0;
+    padding: 20px;
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: var(--white);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+}
+
+header {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: var(--white);
+    padding: 25px 40px;
+    text-align: center;
+}
+
+header h1 {
+    margin: 0;
+    font-size: 2.2em;
+    font-weight: 700;
+}
+
+header h1 i {
+    margin-right: 10px;
+}
+
+header p {
+    margin: 5px 0 0;
+    opacity: 0.9;
+}
+
+main.admin-layout {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 30px;
+    padding: 30px;
+}
+
+.join-layout {
+    padding: 40px;
+    max-width: 500px;
+    margin: 20px auto;
+    text-align: center;
+}
+
+h2 {
+    color: var(--primary-color);
+    border-bottom: 2px solid var(--secondary-color);
+    padding-bottom: 10px;
+    margin-top: 0;
+    font-size: 1.6em;
+}
+
+h2 i {
+    margin-right: 10px;
+}
+
+/* --- Admin: Queue List --- */
+.queue-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.queue-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px;
+    background: var(--light-gray);
+    border-radius: 8px;
+    margin-bottom: 12px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    transition: all 0.3s ease;
+    border-left: 5px solid transparent;
+}
+
+.queue-item.calling {
+    background-color: var(--yellow);
+    border-left: 5px solid var(--primary-color);
+    transform: scale(1.02);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.queue-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.queue-item:first-child {
+    background: var(--accent-color);
+    color: var(--white);
+    font-weight: bold;
+}
+.queue-item:first-child .person-name {
+     font-size: 1.2em;
+}
+
+.queue-actions {
+    margin-bottom: 20px;
+}
+
+#call-next-btn {
+    width: 100%;
+    padding: 15px;
+    font-size: 1.2em;
+    font-weight: bold;
+    background-color: var(--accent-color);
+    color: var(--white);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+#call-next-btn:hover {
+    background-color: #20b054;
+}
+#call-next-btn:disabled {
+    background-color: var(--gray);
+    cursor: not-allowed;
+}
+
+.person-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.person-position {
+    font-size: 1.5em;
+    font-weight: 700;
+    color: var(--secondary-color);
+    width: 40px;
+    text-align: center;
+}
+
+.queue-item:first-child .person-position {
+    color: var(--white);
+}
+
+.person-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.person-name {
+    font-weight: 600;
+    font-size: 1.1em;
+}
+
+.person-whatsapp {
+    font-size: 0.9em;
+    opacity: 0.8;
+}
+
+.actions button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.2em;
+    padding: 8px 12px;
+    border-radius: 5px;
+    transition: background-color 0.2s ease;
+    margin-left: 5px;
+}
+
+.btn-call { color: var(--blue); }
+.btn-remove { color: var(--red); }
+
+.queue-item:not(:first-child) .btn-call:hover { background-color: rgba(52, 152, 219, 0.1); }
+.queue-item:not(:first-child) .btn-remove:hover { background-color: rgba(231, 76, 60, 0.1); }
+
+.queue-item:first-child .actions button {
+    color: var(--white);
+    font-size: 1.4em;
+}
+
+.queue-item:first-child .actions button:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+
+/* --- Admin: Add Person Form --- */
+.add-person-form {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid var(--gray);
+}
+.add-person-form h3 {
+    margin-top:0;
+    margin-bottom: 15px;
+}
+#add-form {
+    display: flex;
+    gap: 10px;
+}
+#add-form input {
+    flex-grow: 1;
+    padding: 12px;
+    border: 1px solid var(--gray);
+    border-radius: 5px;
+    font-size: 1em;
+}
+#add-form button {
+    padding: 12px 20px;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+    font-weight: 600;
+    transition: background-color 0.2s;
+}
+#add-form button:hover {
+    background-color: var(--secondary-color);
+}
+
+/* --- Admin: QR Section --- */
+.qr-section {
+    background: var(--light-gray);
+    padding: 25px;
+    border-radius: 8px;
+    text-align: center;
+}
+#qrcode-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    background: var(--white);
+    border-radius: 8px;
+    margin-top: 15px;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.06);
+}
+#qrcode canvas {
+    max-width: 100%;
+    height: auto;
+}
+.small-text {
+    font-size: 0.85em;
+    color: #666;
+    margin-top: 15px;
+}
+
+/* --- Empty State --- */
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    margin: 20px 0;
+    border: 2px dashed var(--gray);
+    border-radius: 8px;
+    display: none; /* Hidden by default */
+}
+.empty-state img {
+    max-width: 150px;
+    opacity: 0.7;
+}
+.empty-state p {
+    margin-top: 15px;
+    font-size: 1.1em;
+    color: #666;
+    font-weight: 600;
+}
+
+
+/* --- Join Page Specific --- */
+.join-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 30px;
+}
+.join-form input {
+    padding: 15px;
+    font-size: 1.1em;
+    border: 1px solid var(--gray);
+    border-radius: 8px;
+}
+.join-form button {
+    padding: 15px;
+    font-size: 1.2em;
+    font-weight: bold;
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+.join-form button:hover:not(:disabled) {
+    background-color: #1ebe58;
+}
+
+.join-form button:disabled {
+    background-color: var(--gray);
+    cursor: not-allowed;
+}
+
+#success-section h2 {
+    color: var(--primary-color);
+    margin-bottom: 20px;
+}
+
+#status-display {
+    background-color: var(--light-gray);
+    border-radius: 8px;
+    padding: 25px;
+    margin-bottom: 20px;
+    border: 1px solid var(--gray);
+}
+
+#position-number {
+    font-size: 5em;
+    font-weight: 700;
+    color: var(--primary-color);
+    line-height: 1;
+    margin: 10px 0;
+}
+
+#people-ahead {
+    font-size: 1.1em;
+    color: #555;
+    margin-bottom: 20px;
+}
+
+#turn-alert {
+    background-color: var(--yellow);
+    color: var(--text-color);
+    padding: 15px;
+    border-radius: 8px;
+    border-left: 5px solid var(--primary-color);
+}
+
+#turn-alert h3 {
+    margin: 0 0 5px 0;
+    font-size: 1.2em;
+}
+
+#turn-alert p {
+    margin: 0;
+}
+
+#your-details {
+    font-size: 0.9em;
+    text-align: left;
+    background: #f9f9f9;
+    padding: 10px 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+}
+
+.info-text {
+    font-size: 0.9em;
+    color: #666;
+}
+
+#success-message {
+    padding: 20px;
+    background-color: var(--light-gray);
+    border-left: 5px solid var(--accent-color);
+    margin-top: 30px;
+    text-align: left;
+}
+
+.hidden {
+    display: none;
+}
+
+/* --- Responsive --- */
+@media (max-width: 900px) {
+    main.admin-layout {
+        grid-template-columns: 1fr;
+    }
+    .qr-section {
+        order: -1; /* Move QR code to top on mobile */
+    }
+}
+
+@media (max-width: 600px) {
+    body { padding: 10px; }
+    header { padding: 20px; }
+    main.admin-layout, .join-layout { padding: 20px; }
+    #add-form {
+        flex-direction: column;
+    }
+    header h1 { font-size: 1.8em; }
+}
+
+/* --- Footer --- */
+footer {
+    text-align: center;
+    margin-top: 30px;
+    padding: 10px 0;
+    font-size: 0.9em;
+    color: #666;
+}
