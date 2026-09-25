@@ -26,8 +26,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const toastEl = document.getElementById('toast');
 
     // ============================================================
-    // 🚨 V4 — BANNER DE "SAIU DA ABA" (criado dinamicamente)
+    // 🚨 V4.1 — BANNER DE "SAIU DA ABA" COM BARRA DE PROGRESSO
     // ============================================================
+    const BANNER_DURATION = 5000; // 5 segundos
+    let awayBannerTimeout = null;
+
     const awayBanner = document.createElement('div');
     awayBanner.id = 'away-banner';
     awayBanner.innerHTML = `
@@ -38,6 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="away-banner-text">
                 <strong id="away-banner-title">⚠️ Você saiu do painel!</strong>
                 <span id="away-banner-subtitle">O alarme pode não funcionar em segundo plano. Volte para esta aba.</span>
+                <span class="away-banner-hint">Clique para fechar</span>
             </div>
             <div class="away-banner-count hidden" id="away-banner-count">
                 <span id="away-banner-count-number">0</span>
@@ -46,7 +50,6 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
     `;
 
-    // CSS do banner injetado dinamicamente
     const awayBannerStyle = document.createElement('style');
     awayBannerStyle.textContent = `
         #away-banner {
@@ -63,8 +66,28 @@ document.addEventListener('DOMContentLoaded', () => {
             display: flex;
             justify-content: center;
             pointer-events: none;
+            overflow: hidden;
         }
-        #away-banner.show { transform: translateY(0); pointer-events: auto; }
+        #away-banner.show { 
+            transform: translateY(0); 
+            pointer-events: auto; 
+            cursor: pointer; 
+        }
+        
+        /* Barra de progresso no fundo do banner */
+        #away-banner::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #fca5a5 0%, #fbbf24 100%);
+            width: 0%;
+            transition: width ${BANNER_DURATION}ms linear;
+        }
+        #away-banner.show::after {
+            width: 100%;
+        }
+        
         .away-banner-content {
             display: flex;
             align-items: center;
@@ -104,6 +127,12 @@ document.addEventListener('DOMContentLoaded', () => {
             font-size: 0.85rem;
             opacity: 0.85;
         }
+        .away-banner-hint {
+            font-size: 0.7rem;
+            opacity: 0.6;
+            margin-top: 4px;
+            font-style: italic;
+        }
         .away-banner-count {
             background: rgba(255,255,255,0.2);
             padding: 8px 16px;
@@ -141,8 +170,17 @@ document.addEventListener('DOMContentLoaded', () => {
     document.head.appendChild(awayBannerStyle);
     document.body.appendChild(awayBanner);
 
+    // Clicar no banner esconde imediatamente
+    awayBanner.addEventListener('click', () => {
+        awayBanner.classList.remove('show');
+        if (awayBannerTimeout) {
+            clearTimeout(awayBannerTimeout);
+            awayBannerTimeout = null;
+        }
+    });
+
     // ============================================================
-    // 🔊 SISTEMA DE ÁUDIO BLINDADO — V4 (ANTI-SUSPENSÃO + ALERTA FORA)
+    // 🔊 SISTEMA DE ÁUDIO BLINDADO — V4.1
     // ============================================================
     let audioCtx = null;
     let soundEnabled = false;
@@ -150,8 +188,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let silentKeepAlive = null;
     let wakeLock = null;
     let pendingAlert = false;
-    let isAway = false;                   // operador saiu da aba?
-    let pendingOrdersWhileAway = 0;       // pedidos que chegaram fora
+    let isAway = false;
+    let pendingOrdersWhileAway = 0;
 
     // ---------- TOAST ----------
     function showToast(message, type = 'info', duration = 4000) {
@@ -434,20 +472,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }, { passive: true });
     });
 
-    // ---------- DETECÇÃO DE SAÍDA / VOLTA À ABA (V4) ----------
+    // ============================================================
+    // DETECÇÃO DE SAÍDA / VOLTA À ABA (V4.1 — 5 SEGUNDOS)
+    // ============================================================
     document.addEventListener('visibilitychange', () => {
         if (document.hidden) {
-            // Operador SAIU da aba
+            // ===== OPERADOR SAIU DA ABA =====
             isAway = true;
             console.log('👋 Operador saiu da aba');
-            if (soundEnabled) {
-                awayBanner.classList.add('show');
+            
+            // Mostra o banner
+            awayBanner.classList.add('show');
+            
+            // Cancela timeout anterior
+            if (awayBannerTimeout) {
+                clearTimeout(awayBannerTimeout);
+                awayBannerTimeout = null;
             }
+            
         } else {
-            // Operador VOLTOU
+            // ===== OPERADOR VOLTOU À ABA =====
             isAway = false;
             console.log('👁️ Operador voltou à aba');
-            awayBanner.classList.remove('show');
 
             tryResumeAudio();
 
@@ -455,24 +501,39 @@ document.addEventListener('DOMContentLoaded', () => {
                 requestWakeLock();
             }
 
-            // Se chegaram pedidos enquanto estava fora, avisa
+            // Se chegaram pedidos enquanto estava fora
             if (pendingOrdersWhileAway > 0) {
                 const count = pendingOrdersWhileAway;
                 pendingOrdersWhileAway = 0;
 
+                // Atualiza o texto do banner
+                const titleEl = document.getElementById('away-banner-title');
+                const subtitleEl = document.getElementById('away-banner-subtitle');
+                if (titleEl) titleEl.textContent = `⚠️ ${count} pedido(s) chegaram enquanto você estava fora!`;
+                if (subtitleEl) subtitleEl.textContent = 'Verifique a fila e chame o próximo.';
+
+                // Toca o bipe e mostra toast
                 setTimeout(() => {
-                    showToast(
-                        `⚠️ ${count} pedido(s) chegaram enquanto você estava fora!`,
-                        'error',
-                        8000
-                    );
+                    showToast(`⚠️ ${count} pedido(s) chegaram enquanto você estava fora!`, 'error', 8000);
                     setTimeout(() => playBeep('new'), 300);
                 }, 400);
 
-                // Esconde o contador do banner
+                // Esconde o contador
                 const countEl = document.getElementById('away-banner-count');
                 if (countEl) countEl.classList.add('hidden');
             }
+
+            // Mantém o banner 5 segundos e depois esconde
+            if (awayBannerTimeout) clearTimeout(awayBannerTimeout);
+            awayBannerTimeout = setTimeout(() => {
+                awayBanner.classList.remove('show');
+                
+                // Restaura o texto padrão
+                const titleEl = document.getElementById('away-banner-title');
+                const subtitleEl = document.getElementById('away-banner-subtitle');
+                if (titleEl) titleEl.textContent = '⚠️ Você saiu do painel!';
+                if (subtitleEl) subtitleEl.textContent = 'O alarme pode não funcionar em segundo plano. Volte para esta aba.';
+            }, BANNER_DURATION);
         }
     });
 
@@ -481,7 +542,7 @@ document.addEventListener('DOMContentLoaded', () => {
         tryResumeAudio();
     });
 
-    // Função que incrementa pedidos enquanto o operador está fora
+    // ---------- INCREMENTA PEDIDOS FORA DA ABA ----------
     function incrementAwayOrders() {
         pendingOrdersWhileAway++;
         const countEl = document.getElementById('away-banner-count');
@@ -492,7 +553,6 @@ document.addEventListener('DOMContentLoaded', () => {
             countEl.classList.remove('hidden');
         }
 
-        // Se o operador está fora E o áudio ainda está ativo, tenta tocar
         if (isAway && soundEnabled) {
             try {
                 if (audioCtx && audioCtx.state === 'running') {
@@ -509,7 +569,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateSoundBarUI();
 
     // ============================================================
-    // FIM DO SISTEMA DE ÁUDIO V4
+    // FIM DO SISTEMA DE ÁUDIO V4.1
     // ============================================================
 
 
@@ -685,7 +745,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     showToast(`🔔 ${newCount} novo(s) pedido(s) na fila! (Som desligado)`, 'warning', 6000);
                 }
 
-                // V4: se o operador está fora da aba, conta no banner
                 if (isAway) {
                     incrementAwayOrders();
                 }
