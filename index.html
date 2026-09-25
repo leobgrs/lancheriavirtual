@@ -935,4 +935,217 @@
         --bg-app: #0a0f1a;
         --bg-mesh-1: rgba(255, 94, 44, 0.08);
         --bg-mesh-2: rgba(255, 42, 95, 0.05);
-        --bg-mesh-
+        --bg-mesh-3: rgba(59, 130, 246, 0.05);
+        
+        --surface: #131a2b;
+        --surface-2: #0f1624;
+        --surface-3: #1a2235;
+        
+        --text-primary: #f1f5f9;
+        --text-secondary: #94a3b8;
+        --text-muted: #64748b;
+        
+        --border: #1e293b;
+        --border-strong: #334155;
+        --border-subtle: rgba(30, 41, 59, 0.8);
+        
+        --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+        --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+        --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.55);
+        --shadow-xl: 0 24px 48px rgba(0, 0, 0, 0.65);
+        
+        --primary-soft: rgba(255, 94, 44, 0.15);
+        --success-soft: rgba(16, 185, 129, 0.15);
+        --danger-soft: rgba(239, 68, 68, 0.15);
+      }
+      
+      form input, form select {
+        background: var(--surface-2);
+        color: var(--text-primary);
+        border-color: var(--border-strong);
+      }
+      
+      #qrcode {
+        background: #ffffff;
+      }
+      
+      .queue-list li.calling {
+        background: linear-gradient(90deg, rgba(16, 185, 129, 0.15) 0%, transparent 60%) !important;
+      }
+
+      #sound-control-bar:not(.warning) {
+        background: linear-gradient(90deg, #022c22 0%, #064e3b 50%, #065f46 100%);
+        color: #6ee7b7;
+      }
+    }
+
+    /* Reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="sound-control-bar" class="warning" role="button" tabindex="0" aria-label="Ativar alarme sonoro">
+      <i id="sound-icon" class="fas fa-volume-mute" style="font-size: 1.2rem; color: #fca5a5;"></i> 
+      <span id="sound-text">🔕 ALARME DESATIVADO — CLIQUE AQUI PARA ATIVAR</span>
+  </div>
+
+  <header>
+    <div>
+      <h1><i class="fas fa-store"></i> Lancheria</h1>
+      <p>Gestão de atendimento e pedidos em tempo real</p>
+    </div>
+    <nav class="nav-tabs">
+      <button class="nav-tab-btn active" onclick="switchTab('fila', event)"><i class="fas fa-list-ol"></i> Painel da Fila</button>
+      <button class="nav-tab-btn" onclick="switchTab('historico', event)"><i class="fas fa-chart-line"></i> Histórico & Relatórios</button>
+    </nav>
+  </header>
+
+  <main>
+    <div id="tab-fila" class="tab-content active">
+      <section class="queue-section" aria-live="polite">
+        <h2><i class="fas fa-users"></i> Fila de Espera Atual</h2>
+        <div class="queue-actions">
+          <button id="call-next-btn" class="btn" style="width: auto;">
+            <i class="fas fa-bullhorn"></i> Chamar Próximo (WhatsApp)
+          </button>
+        </div>
+        
+        <ul id="queue-list" class="queue-list"></ul>
+        
+        <div id="empty-queue-message" class="empty-state">
+          <i class="fas fa-mug-hot"></i>
+          <p>A fila está vazia no momento.</p>
+        </div>
+
+        <div id="pagination-controls" class="pagination-controls"></div>
+      </section>
+      
+      <aside>
+        <section class="qr-section">
+          <h2 style="justify-content: center;"><i class="fas fa-qrcode"></i> QR Code do Cliente</h2>
+          <div id="qrcode-container">
+            <div id="qrcode"></div>
+          </div>
+          <p>Aponte a câmara para entrar na fila.</p>
+        </section>
+
+        <section class="add-person-form">
+          <h3><i class="fas fa-user-plus"></i> Inserir Manualmente</h3>
+          <form id="add-form">
+            <label for="name"><i class="fas fa-user"></i> Nome do Cliente</label>
+            <input type="text" id="name" placeholder="Ex: Maria Silva" required>
+            
+            <label for="whatsapp"><i class="fab fa-whatsapp" style="color: #25d366;"></i> WhatsApp</label>
+            <input type="tel" id="whatsapp" placeholder="Ex: 53999887766" required>
+
+            <label for="add-lanche"><i class="fas fa-hamburger"></i> Lanche</label>
+            <select id="add-lanche" required>
+                <option value="" disabled selected>Selecione o lanche...</option>
+                <option value="X-Burger">🍔 X-Burger</option>
+                <option value="X-Salada">🥗 X-Salada</option>
+                <option value="X-Bacon">🥓 X-Bacon</option>
+                <option value="X-Tudo">🍔 X-Tudo</option>
+            </select>
+
+            <label for="add-bebida"><i class="fas fa-cocktail"></i> Bebida</label>
+            <select id="add-bebida" required>
+                <option value="" disabled selected>Selecione a bebida...</option>
+                <option value="Coca-Cola Lata">🥤 Coca-Cola Lata</option>
+                <option value="Guaraná Lata">🥤 Guaraná Lata</option>
+                <option value="Água Mineral">💧 Água Mineral</option>
+                <option value="Sumo Natural">🍊 Sumo Natural</option>
+                <option value="Sem Bebida">🚫 Apenas o lanche</option>
+            </select>
+            
+            <button type="submit" class="btn" style="width: 100%; margin-top: 6px;">
+              <i class="fas fa-plus"></i> Adicionar à Fila
+            </button>
+          </form>
+        </section>
+      </aside>
+    </div>
+
+    <div id="tab-historico" class="tab-content full-width">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-info">
+            <h4>Pedidos Atendidos Hoje</h4>
+            <span id="stat-total-atendidos">0</span>
+          </div>
+          <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+        </div>
+        <div class="stat-card success">
+          <div class="stat-info">
+            <h4>Lanche Mais Pedido</h4>
+            <span id="stat-top-lanche" style="font-size: 1.35rem;">--</span>
+          </div>
+          <div class="stat-icon"><i class="fas fa-hamburger"></i></div>
+        </div>
+        <div class="stat-card warning">
+          <div class="stat-info">
+            <h4>Tempo Médio de Espera</h4>
+            <span id="stat-tempo-medio">~12 min</span>
+          </div>
+          <div class="stat-icon"><i class="fas fa-clock"></i></div>
+        </div>
+      </div>
+
+      <section class="card-box">
+        <h2><i class="fas fa-clipboard-list"></i> Histórico de Pedidos Concluídos</h2>
+        <p style="font-size: 0.9rem; color: var(--text-muted); margin: -14px 0 22px 0;">
+          Registo dos clientes chamados e atendidos recentemente.
+        </p>
+        <ul id="history-list" class="history-list">
+          <li style="justify-content: center; color: var(--text-muted); padding: 30px; border-left: none; background: transparent; box-shadow: none;">
+            Nenhum pedido concluído recentemente nesta sessão.
+          </li>
+        </ul>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast"></div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "firebase/app": "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js",
+      "firebase/firestore": "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js",
+      "qrcode": "https://cdn.jsdelivr.net/npm/qrcode@1.5.3/+esm"
+    }
+  }
+  </script>
+  
+  <script>
+    function switchTab(tabName, evt) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active', 'full-width'));
+      document.querySelectorAll('.nav-tab-btn').forEach(el => el.classList.remove('active'));
+      
+      const target = (evt && evt.currentTarget) || (window.event && window.event.currentTarget);
+      
+      if (tabName === 'fila') {
+        document.getElementById('tab-fila').classList.add('active');
+      } else if (tabName === 'historico') {
+        const histTab = document.getElementById('tab-historico');
+        histTab.classList.add('active', 'full-width');
+      }
+      
+      if (target) target.classList.add('active');
+    }
+  </script>
+
+  <script type="module" src="app.js" defer></script>
+
+  <footer>
+    <p>Desenvolvido por Leonardo Goulart Lopes © 2026 — Sistema de Fila Virtual para Lancheria</p>
+  </footer>
+</body>
+</html>
