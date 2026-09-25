@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const toastEl = document.getElementById('toast');
 
     // ============================================================
-    // 🚨 V5 — BANNER PERSISTENTE (só fecha ao clicar)
+    // 🚨 V5.1 — BANNER COM DOIS ESTADOS (normal vs. urgente)
     // ============================================================
     const awayBanner = document.createElement('div');
     awayBanner.id = 'away-banner';
@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
             position: fixed;
             top: 0; left: 0; right: 0;
             z-index: 99999;
-            background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%);
+            background: linear-gradient(135deg, #78350f 0%, #92400e 100%);
             color: #fff;
             padding: 20px 24px;
             font-family: 'Inter', sans-serif;
@@ -75,9 +75,23 @@ document.addEventListener('DOMContentLoaded', () => {
             filter: brightness(1.1);
         }
 
+        /* Estado URGENTE — quando há pedidos novos */
+        #away-banner.has-orders {
+            background: linear-gradient(135deg, #450a0a 0%, #7f1d1d 50%, #991b1b 100%);
+            animation: bannerFlashUrgent 1.2s ease-in-out infinite;
+        }
+        #away-banner.has-orders .away-banner-icon {
+            background: rgba(255, 255, 255, 0.28);
+            color: #fbbf24;
+        }
+
         @keyframes bannerFlash {
             0%, 100% { box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), inset 0 0 0 0 rgba(255,255,255,0); }
             50% { box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), inset 0 0 80px 0 rgba(255,255,255,0.08); }
+        }
+        @keyframes bannerFlashUrgent {
+            0%, 100% { box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), inset 0 0 0 0 rgba(239, 68, 68, 0); }
+            50% { box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), inset 0 0 100px 0 rgba(239, 68, 68, 0.15); }
         }
 
         .away-banner-content {
@@ -97,7 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
             font-size: 1.7rem;
             animation: awayPulse 1.2s infinite;
             flex-shrink: 0;
-            color: #fca5a5;
+            color: #fcd34d;
         }
         @keyframes awayPulse {
             0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,255,255,0.6); }
@@ -129,7 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
             font-weight: 600;
         }
         .away-banner-count {
-            background: rgba(255,255,255,0.22);
+            background: rgba(255,255,255,0.25);
             padding: 10px 18px;
             border-radius: 14px;
             display: flex;
@@ -137,7 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
             align-items: center;
             flex-shrink: 0;
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.2);
         }
         .away-banner-count.hidden { display: none; }
         .away-banner-count span {
@@ -170,13 +184,16 @@ document.addEventListener('DOMContentLoaded', () => {
     awayBanner.addEventListener('click', () => {
         console.log('👆 Banner fechado pelo clique');
         awayBanner.classList.remove('show');
+        awayBanner.classList.remove('has-orders');
         const countEl = document.getElementById('away-banner-count');
         if (countEl) countEl.classList.add('hidden');
+        const numberEl = document.getElementById('away-banner-count-number');
+        if (numberEl) numberEl.textContent = '0';
         pendingOrdersWhileAway = 0;
     });
 
     // ============================================================
-    // 🔊 SISTEMA DE ÁUDIO BLINDADO — V5
+    // 🔊 SISTEMA DE ÁUDIO BLINDADO — V5.1
     // ============================================================
     let audioCtx = null;
     let soundEnabled = false;
@@ -469,7 +486,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ============================================================
-    // DETECÇÃO DE SAÍDA / VOLTA À ABA (V5 — BANNER PERSISTENTE)
+    // DETECÇÃO DE SAÍDA / VOLTA À ABA (V5.1 — DOIS ESTADOS)
     // ============================================================
     document.addEventListener('visibilitychange', () => {
         if (document.hidden) {
@@ -491,31 +508,52 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const titleEl = document.getElementById('away-banner-title');
             const subtitleEl = document.getElementById('away-banner-subtitle');
+            const countEl = document.getElementById('away-banner-count');
+            const numberEl = document.getElementById('away-banner-count-number');
+            const hintEl = awayBanner.querySelector('.away-banner-hint');
 
-            // Se houve pedidos enquanto estava fora
-            if (pendingOrdersWhileAway > 0) {
+            const hasNewOrders = pendingOrdersWhileAway > 0;
+
+            if (hasNewOrders) {
+                // ===== CASO A: Chegaram pedidos enquanto estava fora =====
                 const count = pendingOrdersWhileAway;
+                console.log(`📦 Voltou com ${count} pedido(s) novo(s)`);
 
-                if (titleEl) titleEl.textContent = `⚠️ ${count} pedido(s) chegaram enquanto você estava fora!`;
-                if (subtitleEl) subtitleEl.textContent = 'Verifique a fila e chame o próximo.';
+                if (titleEl) titleEl.textContent = `🔔 ${count} pedido(s) novo(s) enquanto você estava fora!`;
+                if (subtitleEl) subtitleEl.textContent = 'Verifique a fila e chame o próximo. Clique para dispensar.';
+                if (hintEl) hintEl.textContent = '👆 Clique aqui para fechar e limpar o aviso';
+
+                if (countEl && numberEl) {
+                    numberEl.textContent = count;
+                    countEl.classList.remove('hidden');
+                }
 
                 setTimeout(() => {
-                    showToast(`⚠️ ${count} pedido(s) chegaram enquanto você estava fora!`, 'error', 8000);
+                    showToast(`🔔 ${count} pedido(s) chegaram enquanto você estava fora!`, 'error', 8000);
                     setTimeout(() => playBeep('new'), 300);
                 }, 400);
 
-                const countEl = document.getElementById('away-banner-count');
-                if (countEl) countEl.classList.add('hidden');
+                awayBanner.classList.add('has-orders');
 
-                pendingOrdersWhileAway = 0;
             } else {
+                // ===== CASO B: Nenhum pedido novo — só aviso de saída =====
+                console.log('ℹ️ Voltou sem pedidos novos');
+
                 if (titleEl) titleEl.textContent = '⚠️ Você saiu do painel!';
-                if (subtitleEl) subtitleEl.textContent = 'O alarme pode não funcionar em segundo plano. Volte para esta aba.';
+                if (subtitleEl) subtitleEl.textContent = 'O alarme pode não funcionar em segundo plano. Clique para dispensar.';
+                if (hintEl) hintEl.textContent = '👆 Clique aqui para fechar';
+
+                if (countEl) countEl.classList.add('hidden');
+                if (numberEl) numberEl.textContent = '0';
+
+                awayBanner.classList.remove('has-orders');
             }
 
-            // 🔧 MOSTRA O BANNER — e NÃO FECHA SOZINHO
+            // 🔧 ZERA sempre o contador
+            pendingOrdersWhileAway = 0;
+
             awayBanner.classList.remove('show');
-            void awayBanner.offsetWidth; // força reflow
+            void awayBanner.offsetWidth;
             awayBanner.classList.add('show');
 
             console.log('🎯 Banner mostrado — fica até o operador clicar');
@@ -530,6 +568,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // ---------- INCREMENTA PEDIDOS FORA DA ABA ----------
     function incrementAwayOrders() {
         pendingOrdersWhileAway++;
+        console.log(`📦 Pedido fora da aba — contador: ${pendingOrdersWhileAway}`);
+
         const countEl = document.getElementById('away-banner-count');
         const numberEl = document.getElementById('away-banner-count-number');
 
@@ -538,7 +578,6 @@ document.addEventListener('DOMContentLoaded', () => {
             countEl.classList.remove('hidden');
         }
 
-        // Se o operador está fora e o áudio ainda está a tocar, tenta apitar
         if (isAway && soundEnabled) {
             try {
                 if (audioCtx && audioCtx.state === 'running') {
@@ -555,7 +594,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateSoundBarUI();
 
     // ============================================================
-    // FIM DO SISTEMA DE ÁUDIO V5
+    // FIM DO SISTEMA DE ÁUDIO V5.1
     // ============================================================
 
 
@@ -836,38 +875,4 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 setTimeout(async () => {
-                    try {
-                        await addDoc(historyCollection, {
-                            name: person.name,
-                            whatsapp: person.whatsapp,
-                            lanche: person.lanche || 'Lanche',
-                            bebida: person.bebida || '',
-                            timestamp: serverTimestamp()
-                        });
-                        await deleteDoc(doc(db, "queue", person.id));
-                    } catch (error) {
-                        console.error("Erro ao mover para o histórico:", error);
-                        showToast('Erro ao mover para o histórico.', 'error');
-                    }
-                }, 2000);
-            }
-        });
-    }
-
-    // ============================================================
-    // GERAR QR CODE
-    // ============================================================
-    const generateQRCode = () => {
-        if (!qrcodeContainer) return;
-        const currentUrl = window.location.href.split('?')[0];
-        const joinUrl = currentUrl.replace('index.html', '').replace(/\/$/, '') + '/join.html';
-
-        QRCodeLib.toCanvas(document.createElement('canvas'), joinUrl, { width: 256, errorCorrectionLevel: 'H' }, (err, canvas) => {
-            if (err) throw err;
-            qrcodeContainer.innerHTML = '';
-            qrcodeContainer.appendChild(canvas);
-        });
-    };
-
-    generateQRCode();
-});
+                   
