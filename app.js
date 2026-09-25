@@ -26,11 +26,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const toastEl = document.getElementById('toast');
 
     // ============================================================
-    // 🔊 SISTEMA DE ÁUDIO BLINDADO COM WEB AUDIO API
+    // 🔊 SISTEMA DE ÁUDIO BLINDADO — V3 (ANTI-SUSPENSÃO)
     // ============================================================
     let audioCtx = null;
     let soundEnabled = false;
     let watchdogInterval = null;
+    let silentKeepAlive = null;      // oscilador silencioso que mantém o contexto vivo
+    let wakeLock = null;              // Wake Lock da tela (impede suspensão)
+    let pendingAlert = false;         // guarda alerta quando áudio estava suspenso
 
     // ---------- TOAST ----------
     function showToast(message, type = 'info', duration = 4000) {
@@ -70,20 +73,80 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // ---------- OSCILADOR SILENCIOSO (mantém o áudio vivo em background) ----------
+    function startSilentKeepAlive() {
+        if (!audioCtx || silentKeepAlive) return;
+        try {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            gain.gain.value = 0;          // inaudível
+            osc.frequency.value = 20;      // abaixo do espectro audível
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            silentKeepAlive = { osc, gain };
+            console.log('🔇 Oscilador silencioso iniciado (mantém áudio vivo)');
+        } catch (e) {
+            console.warn('Erro ao criar oscilador silencioso:', e);
+        }
+    }
+
+    function stopSilentKeepAlive() {
+        if (silentKeepAlive) {
+            try {
+                silentKeepAlive.osc.stop();
+                silentKeepAlive.osc.disconnect();
+                silentKeepAlive.gain.disconnect();
+            } catch (e) {}
+            silentKeepAlive = null;
+            console.log('🔇 Oscilador silencioso parado');
+        }
+    }
+
+    // ---------- WAKE LOCK (impede a tela de apagar) ----------
+    async function requestWakeLock() {
+        if (!('wakeLock' in navigator)) {
+            console.log('ℹ️ Wake Lock não suportado neste navegador');
+            return;
+        }
+        try {
+            wakeLock = await navigator.wakeLock.request('screen');
+            wakeLock.addEventListener('release', () => {
+                console.log('🔓 Wake Lock liberado');
+            });
+            console.log('🔒 Wake Lock ativo (tela não vai apagar)');
+        } catch (e) {
+            console.warn('Erro ao adquirir Wake Lock:', e);
+        }
+    }
+
+    async function releaseWakeLock() {
+        if (wakeLock) {
+            try { await wakeLock.release(); } catch (e) {}
+            wakeLock = null;
+        }
+    }
+
     // ---------- GERAÇÃO DE BIPES ----------
     function playBeep(type = 'new') {
         if (!soundEnabled) return;
         if (!unlockAudio()) return;
-        if (audioCtx.state !== 'running') return;
+        
+        if (audioCtx.state !== 'running') {
+            // Áudio suspenso: guarda o alerta para tocar quando retomar
+            pendingAlert = true;
+            console.log('⚠️ Áudio suspenso — alerta guardado para tocar ao retomar');
+            return;
+        }
 
         const now = audioCtx.currentTime;
         let frequencies = [];
         let durations = [];
-        const gainValue = 0.4;
+        const gainValue = 0.5; // aumentei para ficar mais audível
 
         if (type === 'new') {
-            frequencies = [880, 1320];
-            durations = [0.15, 0.2];
+            frequencies = [880, 1320, 880]; // 3 bipes (mais chamativo)
+            durations = [0.15, 0.15, 0.25];
         } else if (type === 'call') {
             frequencies = [660, 880, 1100];
             durations = [0.12, 0.12, 0.25];
@@ -114,7 +177,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         if (navigator.vibrate) {
-            navigator.vibrate(type === 'new' ? [100, 50, 100] : [80, 40, 80]);
+            navigator.vibrate(type === 'new' ? [150, 80, 150] : [80, 40, 80]);
         }
     }
 
@@ -151,13 +214,34 @@ document.addEventListener('DOMContentLoaded', () => {
                 soundIcon.className = 'fas fa-exclamation-triangle';
                 soundIcon.style.color = '#fbbf24';
             }
-            if (soundText) soundText.textContent = '⚠️ ÁUDIO SUSPENSO PELO NAVEGADOR — CLIQUE PARA REATIVAR';
+            if (soundText) soundText.textContent = '⚠️ ÁUDIO SUSPENSO — CLIQUE PARA REATIVAR';
+        }
+    }
+
+    // ---------- RETOMADA DE ÁUDIO (chamada em vários eventos) ----------
+    async function tryResumeAudio() {
+        if (!soundEnabled || !audioCtx) return;
+        if (audioCtx.state === 'suspended') {
+            try {
+                await audioCtx.resume();
+                console.log('✅ Áudio retomado');
+                updateSoundBarUI();
+
+                // Se havia um alerta pendente, toca agora
+                if (pendingAlert) {
+                    pendingAlert = false;
+                    console.log('🔔 Tocando alerta pendente (pedido chegou enquanto suspenso)');
+                    setTimeout(() => playBeep('new'), 200);
+                }
+            } catch (e) {
+                console.warn('Falha ao retomar áudio:', e);
+            }
         }
     }
 
     // ---------- TOGGLE DO SOM ----------
     if (soundControlBar) {
-        const toggleSound = () => {
+        const toggleSound = async () => {
             const ok = unlockAudio();
             if (!ok) {
                 showToast('O seu navegador não suporta áudio. Verifique as permissões do site.', 'error');
@@ -168,19 +252,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (soundEnabled) {
                 if (audioCtx.state === 'suspended') {
-                    audioCtx.resume().then(() => {
-                        playBeep('new');
-                        updateSoundBarUI();
-                        showToast('Alarme sonoro ativado com sucesso!', 'success');
-                    });
-                } else {
-                    playBeep('new');
-                    updateSoundBarUI();
-                    showToast('Alarme sonoro ativado com sucesso!', 'success');
+                    await audioCtx.resume();
                 }
+                playBeep('new');
+                updateSoundBarUI();
+                showToast('Alarme sonoro ativado! Mantenha esta aba visível.', 'success');
+                startSilentKeepAlive();
                 startWatchdog();
+                requestWakeLock();
             } else {
                 stopWatchdog();
+                stopSilentKeepAlive();
+                releaseWakeLock();
                 updateSoundBarUI();
                 showToast('Alarme sonoro desativado.', 'warning', 2500);
             }
@@ -195,23 +278,29 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ---------- WATCHDOG (verifica áudio a cada 5s) ----------
+    // ---------- WATCHDOG (verifica áudio a cada 10s) ----------
     function startWatchdog() {
         stopWatchdog();
-        watchdogInterval = setInterval(() => {
+        watchdogInterval = setInterval(async () => {
             if (!soundEnabled) return;
 
             if (audioCtx && audioCtx.state === 'suspended') {
-                audioCtx.resume().then(() => {
-                    console.log('🔊 AudioContext reativado automaticamente pelo watchdog');
-                    updateSoundBarUI();
-                }).catch(() => {
-                    updateSoundBarUI();
-                });
-            } else {
-                updateSoundBarUI();
+                console.log('🐕 Watchdog: áudio suspenso, tentando retomar...');
+                await tryResumeAudio();
+            } else if (audioCtx && audioCtx.state === 'running') {
+                // Toca um beep inaudível para manter o contexto "quente"
+                try {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    gain.gain.value = 0.0001;
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.05);
+                } catch (e) {}
             }
-        }, 5000);
+            updateSoundBarUI();
+        }, 10000);
     }
 
     function stopWatchdog() {
@@ -221,25 +310,39 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // ---------- RETOMA ÁUDIO AO VOLTAR O FOCO ----------
+    // ---------- RETOMADA EM MÚLTIPLOS EVENTOS ----------
+    // Qualquer interação do usuário tenta retomar o áudio silenciosamente
+    ['click', 'keydown', 'touchstart', 'mousedown', 'pointerdown'].forEach(evt => {
+        document.addEventListener(evt, () => {
+            if (soundEnabled && audioCtx && audioCtx.state === 'suspended') {
+                tryResumeAudio();
+            }
+        }, { passive: true });
+    });
+
+    // Aba volta ao foco / fica visível
     document.addEventListener('visibilitychange', () => {
-        if (!document.hidden && soundEnabled && audioCtx) {
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume().then(() => {
-                    console.log('🔊 AudioContext retomado após voltar ao foco');
-                    updateSoundBarUI();
-                }).catch(() => updateSoundBarUI());
-            } else {
-                updateSoundBarUI();
+        if (!document.hidden) {
+            console.log('👁️ Aba voltou ao foco');
+            tryResumeAudio();
+            // Reativa Wake Lock se ainda estiver habilitado
+            if (soundEnabled && !wakeLock) {
+                requestWakeLock();
             }
         }
+    });
+
+    // Janela ganha foco (alt+tab, clica de volta, etc)
+    window.addEventListener('focus', () => {
+        console.log('🪟 Janela ganhou foco');
+        tryResumeAudio();
     });
 
     // Estado inicial da barra
     updateSoundBarUI();
 
     // ============================================================
-    // FIM DO SISTEMA DE ÁUDIO
+    // FIM DO SISTEMA DE ÁUDIO V3
     // ============================================================
 
 
@@ -292,13 +395,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
             li.innerHTML = `
                 <div class="person-info" style="display: flex; align-items: center; width: 100%;">
-                    <span class="person-position" style="font-size: 1.3rem; font-weight: 700; color: var(--primary); margin-right: 15px; min-width: 35px;">${actualPosition}º</span>
+                    <span class="person-position">${actualPosition}º</span>
                     <div class="person-details" style="flex: 1;">
-                        <div style="font-size: 1.1rem; font-weight: 700; color: var(--heading-color);">
-                            ${person.name} <span style="font-size: 0.85rem; font-weight: 400; color: #666; margin-left: 10px;"><i class="fab fa-whatsapp" style="color: #25d366;"></i> ${person.whatsapp}</span>
+                        <div style="font-size: 1.1rem; font-weight: 700; color: var(--text-primary);">
+                            ${person.name} <span style="font-size: 0.85rem; font-weight: 400; color: var(--text-muted); margin-left: 10px;"><i class="fab fa-whatsapp" style="color: #25d366;"></i> ${person.whatsapp}</span>
                         </div>
-                        <div style="background: #f1f3f9; border-left: 4px solid var(--primary); padding: 8px 12px; margin-top: 6px; border-radius: 6px; font-size: 0.95rem; color: #333;">
-                            🍔 <strong>Pedido:</strong> <span style="color: var(--primary-dark); font-weight: 600;">${person.lanche || 'Não informado'}</span> + <span style="color: #555;">${person.bebida || 'Sem bebida'}</span>
+                        <div style="background: var(--surface-2); border-left: 4px solid var(--primary); padding: 8px 12px; margin-top: 6px; border-radius: 6px; font-size: 0.95rem; color: var(--text-secondary);">
+                            🍔 <strong>Pedido:</strong> <span style="color: var(--primary); font-weight: 600;">${person.lanche || 'Não informado'}</span> + <span style="color: var(--text-secondary);">${person.bebida || 'Sem bebida'}</span>
                         </div>
                     </div>
                 </div>
@@ -367,7 +470,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (historyDocs.length === 0) {
             historyList.innerHTML = `
-                <li style="justify-content: center; color: #858796; padding: 25px; border-left: none;">
+                <li style="justify-content: center; color: var(--text-muted); padding: 25px; border-left: none; background: transparent; box-shadow: none;">
                     Nenhum pedido concluído recentemente nesta sessão.
                 </li>
             `;
@@ -376,11 +479,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 const li = document.createElement('li');
                 li.innerHTML = `
                     <div style="width: 100%;">
-                        <div style="font-weight: 700; font-size: 1.05rem; color: var(--heading-color);">
-                            ${item.name} <span style="font-weight: 400; font-size: 0.85rem; color: #666; margin-left: 10px;"><i class="fab fa-whatsapp"></i> ${item.whatsapp}</span>
+                        <div style="font-weight: 700; font-size: 1.05rem; color: var(--text-primary);">
+                            ${item.name} <span style="font-weight: 400; font-size: 0.85rem; color: var(--text-muted); margin-left: 10px;"><i class="fab fa-whatsapp"></i> ${item.whatsapp}</span>
                         </div>
-                        <div style="background: #f8f9fc; border-left: 4px solid var(--success); padding: 6px 10px; margin-top: 5px; border-radius: 4px; font-size: 0.9rem;">
-                            ✅ <strong>Entregue:</strong> <span style="font-weight: 600; color: #2e384d;">${item.lanche || 'Lanche'} + ${item.bebida || ''}</span>
+                        <div style="background: var(--surface-2); border-left: 4px solid var(--success); padding: 6px 10px; margin-top: 5px; border-radius: 4px; font-size: 0.9rem; color: var(--text-secondary);">
+                            ✅ <strong>Entregue:</strong> <span style="font-weight: 600; color: var(--text-primary);">${item.lanche || 'Lanche'} + ${item.bebida || ''}</span>
                         </div>
                     </div>
                 `;
@@ -411,6 +514,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (soundEnabled) {
                     console.log('🔔 Novo pedido detectado — tocando alarme');
                     playBeep('new');
+                    showToast(`🔔 ${newCount} novo(s) pedido(s) na fila!`, 'success', 4000);
                 } else {
                     showToast(`🔔 ${newCount} novo(s) pedido(s) na fila! (Som desligado)`, 'warning', 6000);
                 }
