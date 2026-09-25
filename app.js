@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const toastEl = document.getElementById('toast');
 
     // ============================================================
-    // 🚨 V5.1 — BANNER COM DOIS ESTADOS (normal vs. urgente)
+    // 🚨 BANNER DE "SAIU DA ABA"
     // ============================================================
     const awayBanner = document.createElement('div');
     awayBanner.id = 'away-banner';
@@ -71,9 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
             cursor: pointer;
             animation: bannerFlash 2s ease-in-out infinite;
         }
-        #away-banner.show:hover {
-            filter: brightness(1.1);
-        }
+        #away-banner.show:hover { filter: brightness(1.1); }
         #away-banner.has-orders {
             background: linear-gradient(135deg, #450a0a 0%, #7f1d1d 50%, #991b1b 100%);
             animation: bannerFlashUrgent 1.2s ease-in-out infinite;
@@ -91,19 +89,14 @@ document.addEventListener('DOMContentLoaded', () => {
             50% { box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), inset 0 0 100px 0 rgba(239, 68, 68, 0.15); }
         }
         .away-banner-content {
-            display: flex;
-            align-items: center;
-            gap: 18px;
-            max-width: 900px;
-            width: 100%;
+            display: flex; align-items: center; gap: 18px;
+            max-width: 900px; width: 100%;
         }
         .away-banner-icon {
             width: 54px; height: 54px;
             background: rgba(255,255,255,0.18);
             border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: flex; align-items: center; justify-content: center;
             font-size: 1.7rem;
             animation: awayPulse 1.2s infinite;
             flex-shrink: 0;
@@ -113,56 +106,20 @@ document.addEventListener('DOMContentLoaded', () => {
             0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,255,255,0.6); }
             50% { transform: scale(1.1); box-shadow: 0 0 0 16px rgba(255,255,255,0); }
         }
-        .away-banner-text {
-            flex: 1;
-            text-align: left;
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-        .away-banner-text strong {
-            font-size: 1.05rem;
-            font-weight: 700;
-            letter-spacing: -0.01em;
-            line-height: 1.3;
-        }
-        .away-banner-text span {
-            font-size: 0.85rem;
-            opacity: 0.9;
-            line-height: 1.4;
-        }
-        .away-banner-hint {
-            font-size: 0.72rem;
-            opacity: 0.7;
-            margin-top: 6px;
-            font-style: italic;
-            font-weight: 600;
-        }
+        .away-banner-text { flex: 1; text-align: left; display: flex; flex-direction: column; gap: 4px; }
+        .away-banner-text strong { font-size: 1.05rem; font-weight: 700; letter-spacing: -0.01em; line-height: 1.3; }
+        .away-banner-text span { font-size: 0.85rem; opacity: 0.9; line-height: 1.4; }
+        .away-banner-hint { font-size: 0.72rem; opacity: 0.7; margin-top: 6px; font-style: italic; font-weight: 600; }
         .away-banner-count {
             background: rgba(255,255,255,0.25);
-            padding: 10px 18px;
-            border-radius: 14px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            flex-shrink: 0;
-            backdrop-filter: blur(10px);
+            padding: 10px 18px; border-radius: 14px;
+            display: flex; flex-direction: column; align-items: center;
+            flex-shrink: 0; backdrop-filter: blur(10px);
             border: 1px solid rgba(255,255,255,0.2);
         }
         .away-banner-count.hidden { display: none; }
-        .away-banner-count span {
-            font-family: 'Poppins', sans-serif;
-            font-size: 1.6rem;
-            font-weight: 800;
-            line-height: 1;
-        }
-        .away-banner-count small {
-            font-size: 0.68rem;
-            opacity: 0.9;
-            margin-top: 3px;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-        }
+        .away-banner-count span { font-family: 'Poppins', sans-serif; font-size: 1.6rem; font-weight: 800; line-height: 1; }
+        .away-banner-count small { font-size: 0.68rem; opacity: 0.9; margin-top: 3px; text-transform: uppercase; letter-spacing: 0.06em; }
         @media (max-width: 600px) {
             #away-banner { padding: 14px 16px; }
             .away-banner-icon { width: 44px; height: 44px; font-size: 1.3rem; }
@@ -185,8 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (numberEl) numberEl.textContent = '0';
         pendingOrdersWhileAway = 0;
     });
-
-    // ============================================================
+        // ============================================================
     // 🔊 SISTEMA DE ÁUDIO BLINDADO — V6
     // ============================================================
     let audioCtx = null;
@@ -197,7 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let pendingAlert = false;
     let isAway = false;
     let pendingOrdersWhileAway = 0;
-    let isCallingNext = false;  // 🔒 trava para o botão "Chamar Próximo"
+    let isCallingNext = false;
 
     // ---------- TOAST ----------
     function showToast(message, type = 'info', duration = 4000) {
@@ -481,13 +437,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ============================================================
-    // DETECÇÃO DE SAÍDA / VOLTA À ABA (V5.1 — DOIS ESTADOS)
+    // DETECÇÃO DE SAÍDA / VOLTA À ABA
     // ============================================================
     document.addEventListener('visibilitychange', () => {
         if (document.hidden) {
             isAway = true;
             console.log('👋 Operador saiu da aba');
-
         } else {
             isAway = false;
             console.log('👁️ Operador voltou à aba');
@@ -525,7 +480,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }, 400);
 
                 awayBanner.classList.add('has-orders');
-
             } else {
                 console.log('ℹ️ Voltou sem pedidos novos');
 
@@ -581,13 +535,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Estado inicial
     updateSoundBarUI();
-
-    // ============================================================
-    // FIM DO SISTEMA DE ÁUDIO V6
-    // ============================================================
-
-
-    // ============================================================
+        // ============================================================
     // FIREBASE — REFERÊNCIAS
     // ============================================================
     const queueCollection = collection(db, "queue");
@@ -850,7 +798,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
-                // 🔧 SEMPRE pega o primeiro da fila GLOBAL (não da página)
+                // 🔧 SEMPRE pega o primeiro da fila GLOBAL
                 console.log('📢 Chamando próximo da fila...');
                 const firstInQueueQuery = query(queueCollection, orderBy("timestamp", "asc"), limit(1));
                 const snapshot = await getDocs(firstInQueueQuery);
@@ -865,4 +813,75 @@ document.addEventListener('DOMContentLoaded', () => {
                 const person = { id: nextPersonDoc.id, ...nextPersonDoc.data() };
                 console.log('👤 Chamando:', person.name, '| Pedido:', person.lanche, '+', person.bebida);
 
-                // 🔧 Força voltar para a página 1 para
+                // 🔧 Força voltar para a página 1 para mostrar o item
+                if (currentPage !== 1) {
+                    console.log('📄 Mudando para página 1');
+                    currentPage = 1;
+                    renderQueue(allPeople);
+                }
+
+                // Abre o WhatsApp
+                const numeroLimpo = person.whatsapp.replace(/\D/g, '');
+                const lancheDesc = person.lanche || 'Lanche';
+                const bebidaDesc = person.bebida || '';
+                const mensagem = `Olá ${person.name}, o seu pedido (${lancheDesc} + ${bebidaDesc}) na Lancheria está pronto! Por favor, dirija-se ao balcão para retirada. Bom apetite! 🍔🥤`;
+
+                const whatsappUrl = `https://wa.me/${numeroLimpo}?text=${encodeURIComponent(mensagem)}`;
+
+                window.open(whatsappUrl, '_blank');
+                playBeep('call');
+
+                // Marca o item visualmente
+                const listItem = queueList.querySelector(`[data-id="${person.id}"]`);
+                if (listItem) {
+                    listItem.classList.add('calling');
+                    listItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+
+                // Aguarda 2s e move para o histórico
+                setTimeout(async () => {
+                    try {
+                        await addDoc(historyCollection, {
+                            name: person.name,
+                            whatsapp: person.whatsapp,
+                            lanche: person.lanche || 'Lanche',
+                            bebida: person.bebida || '',
+                            timestamp: serverTimestamp()
+                        });
+                        await deleteDoc(doc(db, "queue", person.id));
+                        console.log('✅ Pedido movido para histórico:', person.name);
+                    } catch (error) {
+                        console.error("Erro ao mover para o histórico:", error);
+                        showToast('Erro ao mover para o histórico.', 'error');
+                    } finally {
+                        isCallingNext = false;
+                        callNextBtn.disabled = false;
+                    }
+                }, 2000);
+
+            } catch (error) {
+                console.error("Erro no Chamar Próximo:", error);
+                showToast('Erro ao chamar próximo.', 'error');
+                isCallingNext = false;
+                callNextBtn.disabled = false;
+            }
+        });
+    }
+
+    // ============================================================
+    // GERAR QR CODE
+    // ============================================================
+    const generateQRCode = () => {
+        if (!qrcodeContainer) return;
+        const currentUrl = window.location.href.split('?')[0];
+        const joinUrl = currentUrl.replace('index.html', '').replace(/\/$/, '') + '/join.html';
+
+        QRCodeLib.toCanvas(document.createElement('canvas'), joinUrl, { width: 256, errorCorrectionLevel: 'H' }, (err, canvas) => {
+            if (err) throw err;
+            qrcodeContainer.innerHTML = '';
+            qrcodeContainer.appendChild(canvas);
+        });
+    };
+
+    generateQRCode();
+});
